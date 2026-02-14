@@ -77,11 +77,71 @@
         <button id="start_btn">Start VM</button>
         <button id="lock_btn">Lock Mouse</button>
         <button id="fullscreen_btn">Fullscreen</button>
-        <span id="status">(Press ESC to unlock mouse)</span>
+        <span id="status">Select an ISO file to start</span>
     </div>
     <div id="screen_container"></div>
     
     <script src="https://cdn.jsdelivr.net/npm/v86@latest/build/libv86.js"></script>
-    <script src="myapp.js"></script>
+    <script>
+        let emulator = null;
+
+        document.getElementById('start_btn').addEventListener('click', function() {
+            const isoFile = document.getElementById('iso_input').files[0];
+            if (!isoFile) {
+                alert('Please select an ISO file first!');
+                return;
+            }
+            
+            if (emulator) {
+                emulator.stop();
+            }
+            
+            emulator = new V86({
+                wasm_path: "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
+                screen_container: document.getElementById("screen_container"),
+                memory_size: 512 * 1024 * 1024,
+                vga_memory_size: 8 * 1024 * 1024,
+                bios: {
+                    url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/seabios.bin"
+                },
+                vga_bios: {
+                    url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/vgabios.bin"
+                },
+                cdrom: {
+                    buffer: isoFile
+                },
+                autostart: true,
+                boot_order: 0x123
+            });
+            
+            document.getElementById('status').textContent = 'VM starting...';
+        });
+
+        document.getElementById('lock_btn').addEventListener('click', function() {
+            const canvas = document.querySelector('#screen_container canvas');
+            if (!canvas) {
+                alert("VM not started yet!");
+                return;
+            }
+            canvas.requestPointerLock();
+        });
+
+        document.getElementById('fullscreen_btn').addEventListener('click', function() {
+            const container = document.getElementById("screen_container");
+            if (!document.fullscreenElement) {
+                container.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        document.addEventListener('pointerlockchange', function() {
+            if (document.pointerLockElement) {
+                document.getElementById('status').textContent = 'Mouse locked! Press ESC to unlock';
+            } else {
+                document.getElementById('status').textContent = 'Mouse unlocked';
+            }
+        });
+    </script>
 </body>
 </html>
