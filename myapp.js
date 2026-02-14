@@ -1,6 +1,6 @@
 let emulator;
 
-// Start VM button
+// Start VM with uploaded ISO
 document.getElementById('start_btn').addEventListener('click', function() {
     const isoFile = document.getElementById('iso_input').files[0];
     if (!isoFile) {
@@ -26,11 +26,15 @@ document.getElementById('start_btn').addEventListener('click', function() {
         cdrom: {
             buffer: isoFile
         },
+        hda: {
+            size: 2 * 1024 * 1024 * 1024,  // 2GB hard disk
+            async: true
+        },
         autostart: true,
         boot_order: 0x123
     });
     
-    document.getElementById('status').textContent = 'VM starting... Wait for desktop to load';
+    document.getElementById('status').textContent = 'VM starting with hard disk... Wait for desktop to load';
 });
 
 // Lock Mouse button
