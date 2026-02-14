@@ -6,84 +6,67 @@
     <title>Web VM</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            background: #000;
-            color: white;
-            overflow: hidden;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #000; color: white; overflow: hidden; }
         #controls {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 10px;
-            z-index: 1000;
-            display: flex;
-            gap: 10px;
-            align-items: center;
+            position: fixed; top: 0; left: 0; right: 0;
+            background: rgba(0, 0, 0, 0.9); padding: 10px; z-index: 1000;
+            display: flex; gap: 10px; align-items: center;
         }
         button {
-            padding: 8px 16px;
-            cursor: pointer;
-            background: #333;
-            color: white;
-            border: 1px solid #555;
-            border-radius: 4px;
+            padding: 8px 16px; cursor: pointer; background: #333;
+            color: white; border: 1px solid #555; border-radius: 4px;
         }
-        button:hover {
-            background: #444;
-        }
+        button:hover { background: #444; }
         input[type="file"] {
-            padding: 6px;
-            background: #222;
-            color: white;
-            border: 1px solid #555;
-            border-radius: 4px;
+            padding: 6px; background: #222; color: white;
+            border: 1px solid #555; border-radius: 4px;
         }
         #screen_container {
-            position: fixed;
-            top: 60px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            position: fixed; top: 60px; left: 0; right: 0; bottom: 0;
+            background: #000; display: flex; align-items: center; justify-content: center;
         }
         #screen_container canvas {
-            max-width: 100%;
-            max-height: 100%;
-            image-rendering: pixelated;
-            border: 2px solid #333;
+            max-width: 100%; max-height: 100%;
+            image-rendering: pixelated; border: 2px solid #333;
         }
-        #status {
-            font-size: 12px;
-            color: #888;
-        }
+        #status { font-size: 12px; color: #888; }
     </style>
 </head>
 <body>
     <div id="controls">
         <h3 style="margin-right: auto;">Web VM</h3>
+        <button onclick="loadWin98()">Windows 98 (Demo)</button>
+        <span style="margin: 0 10px;">|</span>
         <input type="file" id="iso_input" accept=".iso">
-        <button id="start_btn">Start VM</button>
+        <button id="start_btn">Start Custom ISO</button>
         <button id="lock_btn">Lock Mouse</button>
         <button id="fullscreen_btn">Fullscreen</button>
-        <span id="status">Select an ISO file to start</span>
+        <span id="status">Ready</span>
     </div>
     <div id="screen_container"></div>
     
     <script src="https://cdn.jsdelivr.net/npm/v86@latest/build/libv86.js"></script>
     <script>
         let emulator = null;
+
+        function loadWin98() {
+            if (emulator) emulator.stop();
+            
+            document.getElementById('status').textContent = 'Loading Windows 98... (this takes 2-3 minutes)';
+            
+            emulator = new V86({
+                wasm_path: "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
+                screen_container: document.getElementById("screen_container"),
+                memory_size: 128 * 1024 * 1024,
+                vga_memory_size: 8 * 1024 * 1024,
+                bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/seabios.bin" },
+                vga_bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/vgabios.bin" },
+                hda: { url: "https://copy.sh/v86/images/windows98.img", async: false, size: 300 * 1024 * 1024 },
+                autostart: true,
+                boot_order: 0x132
+            });
+        }
 
         document.getElementById('start_btn').addEventListener('click', function() {
             const isoFile = document.getElementById('iso_input').files[0];
@@ -92,24 +75,16 @@
                 return;
             }
             
-            if (emulator) {
-                emulator.stop();
-            }
+            if (emulator) emulator.stop();
             
             emulator = new V86({
                 wasm_path: "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
                 screen_container: document.getElementById("screen_container"),
                 memory_size: 512 * 1024 * 1024,
                 vga_memory_size: 8 * 1024 * 1024,
-                bios: {
-                    url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/seabios.bin"
-                },
-                vga_bios: {
-                    url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/vgabios.bin"
-                },
-                cdrom: {
-                    buffer: isoFile
-                },
+                bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/seabios.bin" },
+                vga_bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/vgabios.bin" },
+                cdrom: { buffer: isoFile },
                 autostart: true,
                 boot_order: 0x123
             });
@@ -119,10 +94,7 @@
 
         document.getElementById('lock_btn').addEventListener('click', function() {
             const canvas = document.querySelector('#screen_container canvas');
-            if (!canvas) {
-                alert("VM not started yet!");
-                return;
-            }
+            if (!canvas) { alert("VM not started yet!"); return; }
             canvas.requestPointerLock();
         });
 
