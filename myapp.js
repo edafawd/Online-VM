@@ -1,6 +1,7 @@
 let emulator;
 
-function startVM() {
+// Start VM button
+document.getElementById('start_btn').addEventListener('click', function() {
     const isoFile = document.getElementById('iso_input').files[0];
     if (!isoFile) {
         alert('Please select an ISO file first!');
@@ -29,21 +30,37 @@ function startVM() {
         boot_order: 0x123
     });
     
-    alert("VM started! Wait for desktop, then click Lock Mouse button.");
-}
+    document.getElementById('status').textContent = 'VM starting... Wait for desktop to load';
+});
 
-function lockMouse() {
-    alert("Lock Mouse button clicked!");
-    
+// Lock Mouse button
+document.getElementById('lock_btn').addEventListener('click', function() {
     const canvas = document.querySelector('#screen_container canvas');
-    alert("Canvas found: " + (canvas !== null));
     
-    if (canvas) {
-        canvas.requestPointerLock();
-        alert("requestPointerLock called");
+    if (!canvas) {
+        alert("VM not started yet!");
+        return;
     }
-}
+    
+    canvas.requestPointerLock();
+    document.getElementById('status').textContent = 'Mouse locked! Press ESC to unlock';
+});
 
-function toggleFullscreen() {
-    document.getElementById("screen_container").requestFullscreen();
-}
+// Fullscreen button
+document.getElementById('fullscreen_btn').addEventListener('click', function() {
+    const container = document.getElementById("screen_container");
+    if (!document.fullscreenElement) {
+        container.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+});
+
+// Monitor pointer lock status
+document.addEventListener('pointerlockchange', function() {
+    if (document.pointerLockElement) {
+        document.getElementById('status').textContent = 'Mouse locked! Press ESC to unlock';
+    } else {
+        document.getElementById('status').textContent = 'Mouse unlocked - Click "Lock Mouse" to lock again';
+    }
+});
