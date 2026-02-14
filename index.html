@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web VM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: white;
+            overflow: hidden;
+        }
+        #controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 10px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #444;
+        }
+        input[type="file"], select {
+            padding: 6px;
+            background: #222;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+        }
+        select {
+            min-width: 200px;
+        }
+        #screen_container {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        #screen_container canvas {
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            border: 2px solid #333;
+        }
+        #screen_container canvas:hover {
+            border-color: #0078d4;
+        }
+        #screen_container:fullscreen {
+            background: #000;
+            top: 0;
+        }
+        #screen_container:fullscreen canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
+            border: none;
+        }
+        #notification {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 120, 212, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            z-index: 2000;
+            display: none;
+            font-size: 14px;
+        }
+        .info {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h3 style="margin-right: auto;">Virtual Machine</h3>
+        
+        <select id="os_select" onchange="osSelectChanged()">
+            <option value="">Select Pre-installed OS...</option>
+            <option value="kolibri">KolibriOS (1.4MB - Fast)</option>
+            <option value="tinycore">Tiny Core Linux (16MB)</option>
+            <option value="dsl">Damn Small Linux (50MB)</option>
+            <option value="freedos">FreeDOS (20MB)</option>
+            <option value="windows1">Windows 1.01 (3MB)</option>
+            <option value="custom">Custom ISO File...</option>
+        </select>
+        
+        <input type="file" id="iso_input" accept=".iso" style="display:none;">
+        
+        <button onclick="startVM()">Start VM</button>
+        <button onclick="toggleFullscreen()">Fullscreen</button>
+        <button onclick="if(emulator) emulator.restart()">Restart</button>
+    </div>
+    <div id="notification"></div>
+    <div id="screen_container">
+        <canvas></canvas>
+    </div>
+    <div class="info">
+        Click on the screen to capture mouse - Press ESC to release - F11 for fullscreen
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/v86@latest/build/libv86.js"></script>
+    <script src="myapp.js"></script>
+</body>
+</html>
