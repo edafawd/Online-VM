@@ -11,11 +11,9 @@ function startVM() {
         emulator.stop();
     }
     
-    const screenContainer = document.getElementById("screen_container");
-    
     emulator = new V86({
         wasm_path: "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
-        screen_container: screenContainer,
+        screen_container: document.getElementById("screen_container"),
         memory_size: 512 * 1024 * 1024,
         vga_memory_size: 8 * 1024 * 1024,
         bios: {
@@ -25,34 +23,27 @@ function startVM() {
             url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/vgabios.bin"
         },
         cdrom: {
-            buffer: isoFile,
-            async: true
+            buffer: isoFile
         },
         autostart: true,
         boot_order: 0x123
     });
+    
+    alert("VM started! Wait for desktop, then click Lock Mouse button.");
 }
 
 function lockMouse() {
+    alert("Lock Mouse button clicked!");
+    
     const canvas = document.querySelector('#screen_container canvas');
+    alert("Canvas found: " + (canvas !== null));
     
-    if (!canvas) {
-        alert("VM not started yet!");
-        return;
+    if (canvas) {
+        canvas.requestPointerLock();
+        alert("requestPointerLock called");
     }
-    
-    canvas.requestPointerLock().then(() => {
-        alert("Mouse locked! Press ESC to unlock.");
-    }).catch((error) => {
-        alert("Pointer lock failed: " + error.message);
-    });
 }
 
 function toggleFullscreen() {
-    const container = document.getElementById("screen_container");
-    if (!document.fullscreenElement) {
-        container.requestFullscreen();
-    } else {
-        document.exitFullscreen();
-    }
+    document.getElementById("screen_container").requestFullscreen();
 }
