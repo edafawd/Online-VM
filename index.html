@@ -36,7 +36,7 @@
 <body>
     <div id="controls">
         <h3 style="margin-right: auto;">Web VM</h3>
-        <button onclick="loadWin98()">Windows 98 (Demo)</button>
+        <button onclick="loadWin98()">Windows 98</button>
         <span style="margin: 0 10px;">|</span>
         <input type="file" id="iso_input" accept=".iso">
         <button id="start_btn">Start Custom ISO</button>
@@ -53,7 +53,7 @@
         function loadWin98() {
             if (emulator) emulator.stop();
             
-            document.getElementById('status').textContent = 'Loading Windows 98... (this takes 2-3 minutes)';
+            document.getElementById('status').textContent = 'Loading Windows 98... Please wait 2-3 minutes';
             
             emulator = new V86({
                 wasm_path: "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
@@ -62,9 +62,19 @@
                 vga_memory_size: 8 * 1024 * 1024,
                 bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/seabios.bin" },
                 vga_bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/vgabios.bin" },
-                hda: { url: "https://copy.sh/v86/images/windows98.img", async: false, size: 300 * 1024 * 1024 },
+                hda: { 
+                    url: "https://copy.sh/v86/images/windows98.img",
+                    async: true,
+                    size: 300 * 1024 * 1024
+                },
+                fda: { url: "https://copy.sh/v86/images/windows98.img" },
                 autostart: true,
-                boot_order: 0x132
+                boot_order: 0x132,
+                acpi: false
+            });
+            
+            emulator.add_listener("emulator-ready", function() {
+                document.getElementById('status').textContent = 'Windows 98 booting...';
             });
         }
 
@@ -86,7 +96,8 @@
                 vga_bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/vgabios.bin" },
                 cdrom: { buffer: isoFile },
                 autostart: true,
-                boot_order: 0x123
+                boot_order: 0x123,
+                acpi: false
             });
             
             document.getElementById('status').textContent = 'VM starting...';
@@ -117,4 +128,3 @@
     </script>
 </body>
 </html>
-
