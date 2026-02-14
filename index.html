@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,7 +28,6 @@
             display: flex;
             gap: 10px;
             align-items: center;
-            flex-wrap: wrap;
         }
         button {
             padding: 8px 16px;
@@ -39,15 +40,12 @@
         button:hover {
             background: #444;
         }
-        input[type="file"], select {
+        input[type="file"] {
             padding: 6px;
             background: #222;
             color: white;
             border: 1px solid #555;
             border-radius: 4px;
-        }
-        select {
-            min-width: 200px;
         }
         #screen_container {
             position: fixed;
@@ -59,76 +57,31 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
         }
         #screen_container canvas {
             max-width: 100%;
             max-height: 100%;
-            image-rendering: crisp-edges;
             image-rendering: pixelated;
             border: 2px solid #333;
         }
-        #screen_container canvas:hover {
-            border-color: #0078d4;
-        }
-        #screen_container:fullscreen {
-            background: #000;
-            top: 0;
-        }
-        #screen_container:fullscreen canvas {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: contain;
-            border: none;
-        }
-        #notification {
-            position: fixed;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 120, 212, 0.9);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 6px;
-            z-index: 2000;
-            display: none;
-            font-size: 14px;
-        }
-        .info {
-            position: fixed;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            padding: 8px 16px;
-            border-radius: 4px;
+        #status {
             font-size: 12px;
-            z-index: 1000;
+            color: #888;
         }
     </style>
 </head>
 <body>
-<div id="controls">
-    <h3 style="margin-right: auto;">Web VM</h3>
-    
-    
-    <span style="margin: 0 10px;">|</span>
-    <input type="file" id="iso_input" accept=".iso">
-    <button onclick="startVM()">start emulation</button>
-    <button onclick="toggleFullscreen()">Fullscreen</button>
-</div>
-    <div id="notification"></div>
-    <div id="screen_container">
-        <canvas></canvas>
+    <div id="controls">
+        <h3 style="margin-right: auto;">Web VM</h3>
+        <input type="file" id="iso_input" accept=".iso">
+        <button id="start_btn">Start VM</button>
+        <button id="lock_btn">Lock Mouse</button>
+        <button id="fullscreen_btn">Fullscreen</button>
+        <span id="status">(Press ESC to unlock mouse)</span>
     </div>
-    <div class="info">
-        Click on the screen to capture mouse - Press ESC to release - F11 for fullscreen
-    </div>
+    <div id="screen_container"></div>
+    
     <script src="https://cdn.jsdelivr.net/npm/v86@latest/build/libv86.js"></script>
     <script src="myapp.js"></script>
-
-
-
-
-</body></html>
-
+</body>
+</html>
