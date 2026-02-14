@@ -25,34 +25,27 @@ function startVM() {
             url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/vgabios.bin"
         },
         cdrom: {
-            buffer: isoFile
+            buffer: isoFile,
+            async: true
         },
         autostart: true,
-        boot_order: 0x123,
-        acpi: true
-    });
-    
-    // Pointer lock on click
-    const canvas = screenContainer.querySelector('canvas');
-    canvas.addEventListener('click', function() {
-        canvas.requestPointerLock();
-    });
-    
-    // Listen for pointer lock
-    document.addEventListener('pointerlockchange', function() {
-        if (document.pointerLockElement === canvas) {
-            console.log('Mouse locked!');
-        } else {
-            console.log('Mouse unlocked - press ESC to release, click to relock');
-        }
+        boot_order: 0x123
     });
 }
 
 function lockMouse() {
     const canvas = document.querySelector('#screen_container canvas');
-    if (canvas) {
-        canvas.requestPointerLock();
+    
+    if (!canvas) {
+        alert("VM not started yet!");
+        return;
     }
+    
+    canvas.requestPointerLock().then(() => {
+        alert("Mouse locked! Press ESC to unlock.");
+    }).catch((error) => {
+        alert("Pointer lock failed: " + error.message);
+    });
 }
 
 function toggleFullscreen() {
