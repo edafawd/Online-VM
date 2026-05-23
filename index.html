@@ -1,130 +1,702 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web VM</title>
-    <link rel="icon" type="image/png" href="favicon.png">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #000; color: white; overflow: hidden; }
-        #controls {
-            position: fixed; top: 0; left: 0; right: 0;
-            background: rgba(0, 0, 0, 0.9); padding: 10px; z-index: 1000;
-            display: flex; gap: 10px; align-items: center;
-        }
-        button {
-            padding: 8px 16px; cursor: pointer; background: #333;
-            color: white; border: 1px solid #555; border-radius: 4px;
-        }
-        button:hover { background: #444; }
-        input[type="file"] {
-            padding: 6px; background: #222; color: white;
-            border: 1px solid #555; border-radius: 4px;
-        }
-        #screen_container {
-            position: fixed; top: 60px; left: 0; right: 0; bottom: 0;
-            background: #000; display: flex; align-items: center; justify-content: center;
-        }
-        #screen_container canvas {
-            max-width: 100%; max-height: 100%;
-            image-rendering: pixelated; border: 2px solid #333;
-        }
-        #status { font-size: 12px; color: #888; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BrowserVM — Linux in Your Browser</title>
+<script src="https://copy.sh/v86/build/libv86.js"></script>
+<style>
+:root {
+  --bg:     #0d1117;
+  --bg2:    #161b22;
+  --bg3:    #21262d;
+  --border: #30363d;
+  --text:   #e6edf3;
+  --muted:  #8b949e;
+  --blue:   #58a6ff;
+  --green:  #3fb950;
+  --red:    #f85149;
+  --yellow: #d29922;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.logo { font-size:15px; font-weight:700; color:var(--blue); letter-spacing:-.3px; }
+.logo span { color:#39d353; }
+.badge {
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg3);
+  color: var(--muted);
+}
+.badge.running  { background:#112211; color:var(--green); }
+.badge.loading  { background:#0d1926; color:var(--blue);  }
+.badge.error    { background:#3d1010; color:var(--red);   }
+.hdr-right { margin-left:auto; font-size:11px; color:var(--muted); }
+
+/* ── Layout ──────────────────────────────────────────── */
+.layout { display:flex; flex:1; overflow:hidden; }
+
+/* ── Sidebar ─────────────────────────────────────────── */
+.sidebar {
+  width:270px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sec { padding:13px 14px; border-bottom:1px solid var(--border); }
+.sec-label {
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.8px;
+  color:var(--muted);
+  margin-bottom:9px;
+}
+
+/* distro cards */
+.dcard {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 11px;
+  cursor: pointer;
+  margin-bottom: 5px;
+  transition: border-color .12s, background .12s;
+  user-select: none;
+}
+.dcard:last-child { margin-bottom:0; }
+.dcard:hover { border-color:var(--blue); background:#1c2230; }
+.dcard.sel   { border-color:var(--blue); background:#0d1926; }
+.dcard.disabled { opacity:.45; pointer-events:none; }
+.dcard-name  { font-size:12px; font-weight:600; }
+.dcard-desc  { font-size:10px; color:var(--muted); margin-top:2px; }
+.dcard-tag {
+  display:inline-block;
+  font-size:9px;
+  font-weight:700;
+  text-transform:uppercase;
+  padding:1px 5px;
+  border-radius:3px;
+  margin-top:4px;
+  background:var(--bg2);
+  color:var(--muted);
+  border:1px solid var(--border);
+}
+.tag-iso  { color:#58a6ff; border-color:#1d4070; background:#0d1926; }
+.tag-bz   { color:#3fb950; border-color:#1a3f1a; background:#112211; }
+.tag-img  { color:#d29922; border-color:#4a3008; background:#261d0a; }
+
+/* form controls */
+.frow { margin-bottom:8px; }
+.frow:last-child { margin-bottom:0; }
+label { display:block; font-size:11px; color:var(--muted); margin-bottom:3px; }
+input[type=url], input[type=text], select {
+  width:100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 8px;
+  border-radius: 5px;
+  font-size:12px;
+  font-family:'Courier New', monospace;
+  transition: border-color .12s;
+}
+input:focus, select:focus { outline:none; border-color:var(--blue); }
+select option { background:var(--bg3); }
+input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin-top:3px; }
+
+/* buttons */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:5px;
+  padding:7px 12px;
+  border-radius:5px;
+  border:1px solid var(--border);
+  font-size:12px; font-weight:600; font-family:inherit;
+  cursor:pointer;
+  transition:background .1s, border-color .1s, opacity .1s;
+  white-space:nowrap;
+}
+.btn:disabled { opacity:.35; cursor:not-allowed; }
+.btn-green { background:#238636; border-color:#2ea043; color:#fff; }
+.btn-green:hover:not(:disabled) { background:#2ea043; }
+.btn-red   { background:var(--bg3); border-color:var(--red); color:var(--red); }
+.btn-red:hover:not(:disabled)   { background:#3d1010; }
+.btn-ghost { background:var(--bg3); color:var(--text); }
+.btn-ghost:hover:not(:disabled) { background:var(--border); }
+.btn-full  { width:100%; }
+.btn-row   { display:flex; gap:6px; }
+.btn-row .btn { flex:1; }
+
+/* ── VM area ────────────────────────────────────────── */
+.vm-wrap { flex:1; display:flex; flex-direction:column; overflow:hidden; background:#000; }
+
+#screen-area {
+  flex:1;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background:#000;
+}
+
+/* placeholder */
+#placeholder {
+  text-align:center;
+  color:var(--muted);
+  user-select:none;
+}
+#placeholder .bigicon { font-size:60px; display:block; margin-bottom:14px; }
+#placeholder h2 { font-size:19px; color:var(--blue); margin-bottom:6px; }
+#placeholder p  { font-size:13px; }
+
+/* v86 screen */
+#screen_container {
+  display:none;
+  position:absolute;
+  inset:0;
+  align-items:center;
+  justify-content:center;
+  background:#000;
+  cursor:default;
+}
+#screen_container.active { display:flex; }
+
+/* v86 needs exactly: children[0] = text div, children[1] = canvas */
+#screen_container > div {
+  white-space:pre;
+  font-family:'Courier New', monospace;
+  font-size:14px;
+  line-height:14px;
+  color:#ccc;
+}
+#screen_container > canvas {
+  display:block;
+  image-rendering:pixelated;
+  max-width:100%;
+  max-height:100%;
+}
+
+/* loading overlay */
+#load-overlay {
+  position:absolute;
+  bottom:0; left:0; right:0;
+  background:rgba(13,17,23,.94);
+  padding:10px 14px;
+  border-top:1px solid var(--border);
+  display:none;
+  backdrop-filter:blur(4px);
+}
+#load-overlay.vis { display:block; }
+.progress-track { background:var(--bg3); border-radius:4px; height:4px; overflow:hidden; }
+.progress-fill  { background:var(--blue); height:100%; width:0%; transition:width .3s; border-radius:4px; }
+.progress-text  { font-size:11px; color:var(--muted); margin-top:5px; font-family:'Courier New',monospace; }
+
+/* toolbar */
+.toolbar {
+  background:var(--bg2);
+  border-top:1px solid var(--border);
+  padding:6px 12px;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  flex-shrink:0;
+}
+.toolbar .btn { padding:5px 10px; font-size:11px; }
+.toolbar .spacer { flex:1; }
+.vm-info-text { font-size:11px; color:var(--muted); font-family:'Courier New',monospace; }
+
+/* serial console */
+#serial {
+  height:0;
+  overflow:hidden;
+  overflow-y:auto;
+  background:#020c02;
+  font-family:'Courier New', monospace;
+  font-size:12px;
+  color:#00e840;
+  transition:height .2s, padding .2s;
+  flex-shrink:0;
+}
+#serial.open { height:160px; padding:8px 12px; border-top:1px solid var(--border); }
+
+/* help */
+.help { font-size:10px; color:var(--muted); line-height:1.65; }
+.help strong { color:var(--text); }
+.help a { color:var(--blue); text-decoration:none; }
+.help a:hover { text-decoration:underline; }
+
+/* scrollbar */
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:var(--bg2); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+</style>
 </head>
 <body>
-    <div id="controls">
-        <h3 style="margin-right: auto;">Web VM</h3>
-        <button onclick="loadWin98()">Windows 98</button>
-        <span style="margin: 0 10px;">|</span>
-        <input type="file" id="iso_input" accept=".iso">
-        <button id="start_btn">Start Custom ISO</button>
-        <button id="lock_btn">Lock Mouse</button>
-        <button id="fullscreen_btn">Fullscreen</button>
-        <span id="status">Ready</span>
+
+<!-- ─── Header ──────────────────────────────────────────────── -->
+<header>
+  <div class="logo">Browser<span>VM</span></div>
+  <span class="badge" id="status-badge">Stopped</span>
+  <div class="hdr-right">x86 Emulation · Runs entirely in your browser</div>
+</header>
+
+<div class="layout">
+
+  <!-- ─── Sidebar ──────────────────────────────────────────── -->
+  <div class="sidebar">
+
+    <!-- Distros -->
+    <div class="sec">
+      <div class="sec-label">Linux Distributions</div>
+      <div id="distro-list"></div>
     </div>
-    <div id="screen_container"></div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/v86@latest/build/libv86.js"></script>
-    <script>
-        let emulator = null;
 
-        function loadWin98() {
-            if (emulator) emulator.stop();
-            
-            document.getElementById('status').textContent = 'Loading Windows 98... Please wait 2-3 minutes';
-            
-            emulator = new V86({
-                wasm_path: "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
-                screen_container: document.getElementById("screen_container"),
-                memory_size: 128 * 1024 * 1024,
-                vga_memory_size: 8 * 1024 * 1024,
-                bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/seabios.bin" },
-                vga_bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/vgabios.bin" },
-                hda: { 
-                    url: "https://copy.sh/v86/images/windows98.img",
-                    async: true,
-                    size: 300 * 1024 * 1024
-                },
-                fda: { url: "https://copy.sh/v86/images/windows98.img" },
-                autostart: true,
-                boot_order: 0x132,
-                acpi: false
-            });
-            
-            emulator.add_listener("emulator-ready", function() {
-                document.getElementById('status').textContent = 'Windows 98 booting...';
-            });
-        }
+    <!-- Custom URL -->
+    <div class="sec">
+      <div class="sec-label">Custom Image URL</div>
+      <div class="frow">
+        <label>Direct image URL (ISO / IMG / BIN)</label>
+        <input type="url" id="custom-url" placeholder="https://…/linux.iso" />
+      </div>
+      <div class="frow">
+        <label>Boot method</label>
+        <select id="custom-type" onchange="onCustomTypeChange()">
+          <option value="cdrom">CD-ROM — ISO image</option>
+          <option value="hda">Hard Disk — disk image</option>
+          <option value="fda">Floppy Disk — floppy img</option>
+          <option value="bzimage">bzImage — Linux kernel binary</option>
+        </select>
+      </div>
+      <div class="frow" id="initrd-row" style="display:none">
+        <label>initrd URL (required for bzImage)</label>
+        <input type="url" id="custom-initrd" placeholder="https://…/initrd.img" />
+      </div>
+      <button class="btn btn-ghost btn-full" onclick="applyCustom()">Apply Custom URL</button>
+    </div>
 
-        document.getElementById('start_btn').addEventListener('click', function() {
-            const isoFile = document.getElementById('iso_input').files[0];
-            if (!isoFile) {
-                alert('Please select an ISO file first!');
-                return;
-            }
-            
-            if (emulator) emulator.stop();
-            
-            emulator = new V86({
-                wasm_path: "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
-                screen_container: document.getElementById("screen_container"),
-                memory_size: 512 * 1024 * 1024,
-                vga_memory_size: 8 * 1024 * 1024,
-                bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/seabios.bin" },
-                vga_bios: { url: "https://cdn.jsdelivr.net/npm/v86@latest/bios/vgabios.bin" },
-                cdrom: { buffer: isoFile },
-                autostart: true,
-                boot_order: 0x123,
-                acpi: false
-            });
-            
-            document.getElementById('status').textContent = 'VM starting...';
-        });
+    <!-- Config -->
+    <div class="sec">
+      <div class="sec-label">Configuration</div>
+      <div class="frow">
+        <label>RAM — <strong id="mem-val">256</strong> MB</label>
+        <input type="range" id="mem" min="64" max="512" step="64" value="256"
+          oninput="document.getElementById('mem-val').textContent=this.value">
+      </div>
+    </div>
 
-        document.getElementById('lock_btn').addEventListener('click', function() {
-            const canvas = document.querySelector('#screen_container canvas');
-            if (!canvas) { alert("VM not started yet!"); return; }
-            canvas.requestPointerLock();
-        });
+    <!-- Controls -->
+    <div class="sec">
+      <div class="sec-label">VM Controls</div>
+      <div class="btn-row" style="margin-bottom:6px">
+        <button class="btn btn-green" id="btn-start" onclick="startVM()">▶ Start</button>
+        <button class="btn btn-red"   id="btn-stop"  onclick="stopVM()" disabled>■ Stop</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="restartVM()">↺ Reboot</button>
+        <button class="btn btn-ghost" onclick="sendCAD()">Ctrl+Alt+Del</button>
+      </div>
+    </div>
 
-        document.getElementById('fullscreen_btn').addEventListener('click', function() {
-            const container = document.getElementById("screen_container");
-            if (!document.fullscreenElement) {
-                container.requestFullscreen();
-            } else {
-                document.exitFullscreen();
-            }
-        });
+    <!-- Help -->
+    <div class="sec" style="flex:1">
+      <div class="sec-label">How to Use</div>
+      <div class="help">
+        <strong>1.</strong> Pick a distro below, or paste a custom URL<br>
+        <strong>2.</strong> Click <strong>Start</strong> — images download from the web<br>
+        <strong>3.</strong> Booting takes <strong>30 s – 3 min</strong> depending on distro<br>
+        <strong>4.</strong> Click the black screen to capture keyboard<br>
+        <strong>5.</strong> Press <strong>Escape</strong> to release keyboard focus<br><br>
+        Custom images must be served with<br>
+        <code>Access-Control-Allow-Origin: *</code> headers.<br><br>
+        <strong>Tip:</strong> Open <em>Terminal Log</em> in the toolbar to<br>
+        see serial output while booting.<br><br>
+        Powered by <a href="https://github.com/copy/v86" target="_blank">v86</a> — a full x86 emulator in JS/WASM.
+      </div>
+    </div>
 
-        document.addEventListener('pointerlockchange', function() {
-            if (document.pointerLockElement) {
-                document.getElementById('status').textContent = 'Mouse locked! Press ESC to unlock';
-            } else {
-                document.getElementById('status').textContent = 'Mouse unlocked';
-            }
-        });
-    </script>
+  </div><!-- /sidebar -->
+
+  <!-- ─── VM Area ──────────────────────────────────────────── -->
+  <div class="vm-wrap">
+
+    <div id="screen-area">
+
+      <!-- Placeholder -->
+      <div id="placeholder">
+        <span class="bigicon">🖥</span>
+        <h2>Linux VM Ready</h2>
+        <p>Select a distribution and click <strong>Start</strong></p>
+      </div>
+
+      <!-- v86 renders into this div — DO NOT add extra children -->
+      <div id="screen_container">
+        <div></div>
+        <canvas></canvas>
+      </div>
+
+      <!-- Loading / progress overlay -->
+      <div id="load-overlay">
+        <div class="progress-track">
+          <div class="progress-fill" id="prog-fill"></div>
+        </div>
+        <div class="progress-text" id="prog-text">Initializing emulator…</div>
+      </div>
+
+    </div><!-- /screen-area -->
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button class="btn btn-ghost" onclick="toggleConsole()">▾ Terminal Log</button>
+      <button class="btn btn-ghost" onclick="screenshot()">📷 Screenshot</button>
+      <button class="btn btn-ghost" onclick="toggleFS()">⛶ Fullscreen</button>
+      <div class="spacer"></div>
+      <span class="vm-info-text" id="vm-info"></span>
+    </div>
+
+    <!-- Serial console output -->
+    <div id="serial"></div>
+
+  </div><!-- /vm-wrap -->
+
+</div><!-- /layout -->
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+//  DISTRO CATALOG
+//  Images are served from copy.sh (official v86 demo host) with
+//  CORS headers and support for HTTP Range requests (async mode).
+// ═══════════════════════════════════════════════════════════════
+const DISTROS = [
+  {
+    id: 'buildroot',
+    name: 'Buildroot Linux',
+    desc: 'Tiny embedded Linux — boots in ~10 s',
+    tag: 'bzImage', tagClass: 'tag-bz',
+    icon: '🐧',
+    boot: 'bzimage',
+    bzimageUrl: 'https://copy.sh/v86/images/buildroot-bzimage.bin',
+    initrdUrl:  'https://copy.sh/v86/images/buildroot-initrd.img',
+    mem: 128,
+  },
+  {
+    id: 'linux3',
+    name: 'Linux Demo (v3)',
+    desc: 'Small graphical Linux demo',
+    tag: 'ISO', tagClass: 'tag-iso',
+    icon: '🐧',
+    boot: 'cdrom',
+    url: 'https://copy.sh/v86/images/linux3.iso',
+    mem: 128,
+  },
+  {
+    id: 'alpine',
+    name: 'Alpine Linux 3.12',
+    desc: 'Minimal, security-oriented Linux',
+    tag: 'ISO', tagClass: 'tag-iso',
+    icon: '⛰',
+    boot: 'cdrom',
+    url: 'https://copy.sh/v86/images/alpine-v3.12.0-x86-uefi.iso',
+    mem: 256,
+  },
+  {
+    id: 'kolibri',
+    name: 'KolibriOS',
+    desc: 'Tiny graphical OS written in assembly',
+    tag: 'IMG', tagClass: 'tag-img',
+    icon: '🦋',
+    boot: 'fda',
+    url: 'https://copy.sh/v86/images/kolibrios.img',
+    mem: 64,
+  },
+  {
+    id: 'freedos',
+    name: 'FreeDOS',
+    desc: 'Free DOS — great for quick testing',
+    tag: 'IMG', tagClass: 'tag-img',
+    icon: '💾',
+    boot: 'fda',
+    url: 'https://copy.sh/v86/images/freedos722.img',
+    mem: 64,
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let emulator     = null;
+let current      = DISTROS[0];
+let running      = false;
+let serialBuf    = '';
+let consoleOpen  = false;
+
+// ═══════════════════════════════════════════════════════════════
+//  SIDEBAR — distro list
+// ═══════════════════════════════════════════════════════════════
+function buildDistroList() {
+  const container = document.getElementById('distro-list');
+  DISTROS.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'dcard' + (i === 0 ? ' sel' : '');
+    el.id = 'dc-' + d.id;
+    el.innerHTML =
+      `<div class="dcard-name">${d.icon} ${d.name}</div>` +
+      `<div class="dcard-desc">${d.desc}</div>` +
+      `<span class="dcard-tag ${d.tagClass}">${d.tag}</span>`;
+    el.addEventListener('click', () => pickDistro(d));
+    container.appendChild(el);
+  });
+}
+
+function pickDistro(d) {
+  if (running) return;
+  current = d;
+  document.querySelectorAll('.dcard').forEach(e => e.classList.remove('sel'));
+  document.getElementById('dc-' + d.id).classList.add('sel');
+  document.getElementById('mem').value = d.mem;
+  document.getElementById('mem-val').textContent = d.mem;
+  document.getElementById('custom-url').value = '';
+  document.getElementById('custom-initrd').value = '';
+}
+
+function onCustomTypeChange() {
+  const t = document.getElementById('custom-type').value;
+  document.getElementById('initrd-row').style.display = t === 'bzimage' ? 'block' : 'none';
+}
+
+function applyCustom() {
+  const url  = document.getElementById('custom-url').value.trim();
+  const boot = document.getElementById('custom-type').value;
+  const initrd = document.getElementById('custom-initrd').value.trim();
+  if (!url) { alert('Please enter a URL.'); return; }
+
+  const filename = (url.split('/').pop().split('?')[0]) || 'image';
+  current = {
+    id: 'custom', name: 'Custom: ' + filename,
+    desc: 'User-provided image', tag: boot.toUpperCase(), tagClass:'tag-img', icon:'⚙',
+    boot, url,
+    bzimageUrl: boot === 'bzimage' ? url : undefined,
+    initrdUrl:  initrd || undefined,
+    mem: +document.getElementById('mem').value,
+  };
+  document.querySelectorAll('.dcard').forEach(e => e.classList.remove('sel'));
+  badge('', '📎 Custom set');
+  alert(`Custom image ready:\n${filename}\n\nClick ▶ Start to boot.`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  VM — start
+// ═══════════════════════════════════════════════════════════════
+function startVM() {
+  if (running) return;
+
+  const d   = current;
+  const mem = +document.getElementById('mem').value;
+
+  // Build v86 config
+  const cfg = {
+    wasm_path:       'https://copy.sh/v86/build/v86.wasm',
+    memory_size:      mem * 1024 * 1024,
+    vga_memory_size:  8  * 1024 * 1024,
+    screen_container: document.getElementById('screen_container'),
+    bios:    { url: 'https://copy.sh/v86/bios/seabios.bin'  },
+    vga_bios:{ url: 'https://copy.sh/v86/bios/vgabios.bin'  },
+    autostart: true,
+    network_relay_url: 'wss://relay.widgetry.org/',
+  };
+
+  switch (d.boot) {
+    case 'cdrom':   cfg.cdrom  = { url: d.url, async: true };  break;
+    case 'hda':     cfg.hda    = { url: d.url, async: true };  break;
+    case 'fda':     cfg.fda    = { url: d.url, async: true };  break;
+    case 'bzimage':
+      cfg.bzimage = { url: d.bzimageUrl };
+      if (d.initrdUrl) cfg.initrd = { url: d.initrdUrl };
+      break;
+  }
+
+  // Show screen, hide placeholder
+  document.getElementById('placeholder').style.display    = 'none';
+  document.getElementById('screen_container').classList.add('active');
+  showLoad('Fetching BIOS files…');
+  badge('loading', 'Loading…');
+
+  try {
+    emulator = new V86(cfg);
+  } catch (err) {
+    hideLoad();
+    badge('error', 'Error');
+    document.getElementById('placeholder').style.display = 'block';
+    document.getElementById('screen_container').classList.remove('active');
+    alert('Failed to create VM:\n' + err.message +
+          '\n\nMake sure libv86.js loaded (internet required).');
+    return;
+  }
+
+  // ── Events ──────────────────────────────────────────────────
+  emulator.add_listener('emulator-ready', () => {
+    setProgress(100);
+    showLoad('Booting — please wait…');
+    running = true;
+    syncControls();
+    badge('running', 'Running');
+    document.getElementById('vm-info').textContent =
+      d.name + ' · ' + mem + ' MB RAM';
+    setTimeout(hideLoad, 4000);
+  });
+
+  emulator.add_listener('emulator-stopped', () => {
+    running = false;
+    syncControls();
+    badge('', 'Stopped');
+  });
+
+  emulator.add_listener('download-progress', ev => {
+    if (!ev || !ev.total) return;
+    const pct  = Math.round((ev.loaded / ev.total) * 100);
+    const name = String(ev.file_name || 'file').split('/').pop();
+    setProgress(pct);
+    showLoad(`⬇ ${name} — ${pct}% (${fmtBytes(ev.loaded)} / ${fmtBytes(ev.total)})`);
+  });
+
+  emulator.add_listener('serial0-output-byte', byte => {
+    pushSerial(String.fromCharCode(byte));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  VM — controls
+// ═══════════════════════════════════════════════════════════════
+function stopVM() {
+  if (!emulator) return;
+  emulator.stop();
+  emulator = null;
+  running  = false;
+
+  document.getElementById('placeholder').style.display = 'block';
+  document.getElementById('screen_container').classList.remove('active');
+  document.getElementById('vm-info').textContent = '';
+  document.getElementById('serial').textContent = '';
+  serialBuf = '';
+  hideLoad();
+  syncControls();
+  badge('', 'Stopped');
+}
+
+function restartVM() {
+  if (!emulator) return;
+  try { emulator.restart(); } catch (_) {}
+}
+
+function sendCAD() {
+  if (!emulator || !running) return;
+  // Ctrl press, Alt press, Del press/release, Alt release, Ctrl release
+  emulator.keyboard_send_scancodes([0x1D, 0x38, 0x53, 0xD3, 0xB8, 0x9D]);
+}
+
+function screenshot() {
+  if (!emulator) return;
+  try { emulator.screen_make_screenshot(); }
+  catch (_) { alert('Screenshot unavailable (VM must be running).'); }
+}
+
+function toggleFS() {
+  const el = document.getElementById('screen-area');
+  if (!document.fullscreenElement) el.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Serial console
+// ═══════════════════════════════════════════════════════════════
+function pushSerial(ch) {
+  serialBuf += ch;
+  // Batch DOM writes for performance
+  if (ch === '\n' || serialBuf.length % 64 === 0) {
+    const el = document.getElementById('serial');
+    el.textContent += serialBuf;
+    serialBuf = '';
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
+function toggleConsole() {
+  consoleOpen = !consoleOpen;
+  document.getElementById('serial').classList.toggle('open', consoleOpen);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UI helpers
+// ═══════════════════════════════════════════════════════════════
+function badge(cls, text) {
+  const el = document.getElementById('status-badge');
+  el.className = 'badge' + (cls ? ' ' + cls : '');
+  el.textContent = text;
+}
+
+function showLoad(msg) {
+  document.getElementById('load-overlay').classList.add('vis');
+  document.getElementById('prog-text').textContent = msg;
+}
+function hideLoad() { document.getElementById('load-overlay').classList.remove('vis'); }
+function setProgress(pct) { document.getElementById('prog-fill').style.width = pct + '%'; }
+
+function syncControls() {
+  document.getElementById('btn-start').disabled = running;
+  document.getElementById('btn-stop').disabled  = !running;
+  document.querySelectorAll('.dcard').forEach(el => {
+    el.classList.toggle('disabled', running);
+  });
+}
+
+function fmtBytes(n) {
+  if (n < 1024)       return n + ' B';
+  if (n < 1048576)    return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1048576).toFixed(1) + ' MB';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════════════════════
+buildDistroList();
+syncControls();
+
+// Warn if libv86 didn't load (e.g. offline)
+window.addEventListener('load', () => {
+  if (typeof V86 === 'undefined') {
+    badge('error', 'v86 not loaded');
+    alert(
+      'ERROR: libv86.js could not be loaded from copy.sh.\n\n' +
+      'BrowserVM requires an internet connection to download the emulator.\n' +
+      'Check your network and reload the page.'
+    );
+  }
+});
+</script>
 </body>
 </html>
