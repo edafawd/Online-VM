@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>BrowserVM — Linux in Your Browser</title>
 <script src="https://copy.sh/v86/build/libv86.js"></script>
 <style>
@@ -16,49 +16,47 @@
   --blue:   #58a6ff;
   --green:  #3fb950;
   --red:    #f85149;
-  --yellow: #d29922;
 }
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-html, body { height:100%; overflow:hidden; }
+html, body { height:100%; overflow:hidden; touch-action:manipulation; }
 body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
+  user-select: none;
 }
 
-/* ── Header ─────────────────────────────────────────── */
+/* ── Header ──────────────────────────────────────── */
 header {
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
-  padding: 9px 18px;
+  padding: 9px 16px;
   display: flex;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+  min-height: 44px;
 }
 .logo { font-size:15px; font-weight:700; color:var(--blue); letter-spacing:-.3px; }
 .logo span { color:#39d353; }
 .badge {
-  padding: 2px 9px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-  background: var(--bg3);
-  color: var(--muted);
+  padding: 2px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  background: var(--bg3); color: var(--muted);
 }
-.badge.running  { background:#112211; color:var(--green); }
+.badge.running { background:#112211; color:var(--green); }
 .badge.loading  { background:#0d1926; color:var(--blue);  }
 .badge.error    { background:#3d1010; color:var(--red);   }
-.hdr-right { margin-left:auto; font-size:11px; color:var(--muted); }
+header .right { margin-left:auto; font-size:11px; color:var(--muted); }
 
-/* ── Layout ──────────────────────────────────────────── */
+/* ── Layout ───────────────────────────────────────── */
 .layout { display:flex; flex:1; overflow:hidden; }
 
-/* ── Sidebar ─────────────────────────────────────────── */
+/* ── Sidebar ──────────────────────────────────────── */
 .sidebar {
-  width:270px;
+  width: 260px;
   background: var(--bg2);
   border-right: 1px solid var(--border);
   overflow-y: auto;
@@ -66,14 +64,15 @@ header {
   display: flex;
   flex-direction: column;
 }
-.sec { padding:13px 14px; border-bottom:1px solid var(--border); }
+@media (max-width: 600px) {
+  .sidebar { display: none; }
+  .sidebar.open { display:flex; position:fixed; inset:44px 0 0 0; width:100%; z-index:200; overflow-y:auto; }
+}
+.sec { padding:12px 13px; border-bottom:1px solid var(--border); }
 .sec-label {
-  font-size:10px;
-  font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:.8px;
-  color:var(--muted);
-  margin-bottom:9px;
+  font-size:10px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.8px;
+  color:var(--muted); margin-bottom:9px;
 }
 
 /* distro cards */
@@ -81,48 +80,36 @@ header {
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 9px 11px;
+  padding: 8px 10px;
   cursor: pointer;
   margin-bottom: 5px;
   transition: border-color .12s, background .12s;
-  user-select: none;
 }
 .dcard:last-child { margin-bottom:0; }
 .dcard:hover { border-color:var(--blue); background:#1c2230; }
 .dcard.sel   { border-color:var(--blue); background:#0d1926; }
-.dcard.disabled { opacity:.45; pointer-events:none; }
-.dcard-name  { font-size:12px; font-weight:600; }
-.dcard-desc  { font-size:10px; color:var(--muted); margin-top:2px; }
+.dcard.disabled { opacity:.4; pointer-events:none; }
+.dcard-name { font-size:12px; font-weight:600; }
+.dcard-desc { font-size:10px; color:var(--muted); margin-top:2px; }
 .dcard-tag {
-  display:inline-block;
-  font-size:9px;
-  font-weight:700;
-  text-transform:uppercase;
-  padding:1px 5px;
-  border-radius:3px;
-  margin-top:4px;
-  background:var(--bg2);
-  color:var(--muted);
-  border:1px solid var(--border);
+  display:inline-block; font-size:9px; font-weight:700;
+  text-transform:uppercase; padding:1px 5px;
+  border-radius:3px; margin-top:4px;
+  background:var(--bg2); color:var(--muted); border:1px solid var(--border);
 }
-.tag-iso  { color:#58a6ff; border-color:#1d4070; background:#0d1926; }
-.tag-bz   { color:#3fb950; border-color:#1a3f1a; background:#112211; }
-.tag-img  { color:#d29922; border-color:#4a3008; background:#261d0a; }
+.tag-iso { color:#58a6ff; border-color:#1d4070; background:#0d1926; }
+.tag-bz  { color:#3fb950; border-color:#1a3f1a; background:#112211; }
+.tag-img { color:#d29922; border-color:#4a3008; background:#261d0a; }
 
-/* form controls */
+/* form */
 .frow { margin-bottom:8px; }
 .frow:last-child { margin-bottom:0; }
 label { display:block; font-size:11px; color:var(--muted); margin-bottom:3px; }
 input[type=url], input[type=text], select {
-  width:100%;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 7px 8px;
-  border-radius: 5px;
-  font-size:12px;
-  font-family:'Courier New', monospace;
-  transition: border-color .12s;
+  width:100%; background:var(--bg3); border:1px solid var(--border);
+  color:var(--text); padding:7px 8px; border-radius:5px;
+  font-size:12px; font-family:'Courier New',monospace;
+  transition:border-color .12s;
 }
 input:focus, select:focus { outline:none; border-color:var(--blue); }
 select option { background:var(--bg3); }
@@ -131,13 +118,10 @@ input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin
 /* buttons */
 .btn {
   display:inline-flex; align-items:center; justify-content:center; gap:5px;
-  padding:7px 12px;
-  border-radius:5px;
-  border:1px solid var(--border);
-  font-size:12px; font-weight:600; font-family:inherit;
-  cursor:pointer;
-  transition:background .1s, border-color .1s, opacity .1s;
-  white-space:nowrap;
+  padding:8px 13px; border-radius:6px; border:1px solid var(--border);
+  font-size:13px; font-weight:600; font-family:inherit;
+  cursor:pointer; transition:background .1s, opacity .1s; white-space:nowrap;
+  min-height: 40px;
 }
 .btn:disabled { opacity:.35; cursor:not-allowed; }
 .btn-green { background:#238636; border-color:#2ea043; color:#fff; }
@@ -150,167 +134,156 @@ input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin
 .btn-row   { display:flex; gap:6px; }
 .btn-row .btn { flex:1; }
 
-/* ── VM area ────────────────────────────────────────── */
+/* ── VM area ──────────────────────────────────────── */
 .vm-wrap { flex:1; display:flex; flex-direction:column; overflow:hidden; background:#000; }
 
 #screen-area {
-  flex:1;
-  position:relative;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-  background:#000;
+  flex:1; position:relative;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden; background:#000;
 }
 
-/* placeholder */
-#placeholder {
-  text-align:center;
-  color:var(--muted);
-  user-select:none;
-}
-#placeholder .bigicon { font-size:60px; display:block; margin-bottom:14px; }
-#placeholder h2 { font-size:19px; color:var(--blue); margin-bottom:6px; }
+#placeholder { text-align:center; color:var(--muted); }
+#placeholder .bigicon { font-size:56px; display:block; margin-bottom:12px; }
+#placeholder h2 { font-size:18px; color:var(--blue); margin-bottom:6px; }
 #placeholder p  { font-size:13px; }
 
-/* v86 screen */
+/* v86 screen — needs exactly: children[0]=text div, children[1]=canvas */
 #screen_container {
-  display:none;
-  position:absolute;
-  inset:0;
-  align-items:center;
-  justify-content:center;
-  background:#000;
-  cursor:default;
+  display:none; position:absolute; inset:0;
+  align-items:center; justify-content:center; background:#000;
+  touch-action: none;           /* let our JS handle all touch events */
+  cursor: default;
 }
 #screen_container.active { display:flex; }
-
-/* v86 needs exactly: children[0] = text div, children[1] = canvas */
 #screen_container > div {
-  white-space:pre;
-  font-family:'Courier New', monospace;
-  font-size:14px;
-  line-height:14px;
-  color:#ccc;
+  white-space:pre; font-family:'Courier New',monospace;
+  font-size:14px; line-height:14px; color:#ccc;
 }
-#screen_container > canvas {
-  display:block;
-  image-rendering:pixelated;
-  max-width:100%;
-  max-height:100%;
-}
+#screen_container > canvas { display:block; image-rendering:pixelated; max-width:100%; max-height:100%; }
 
 /* loading overlay */
 #load-overlay {
-  position:absolute;
-  bottom:0; left:0; right:0;
-  background:rgba(13,17,23,.94);
-  padding:10px 14px;
-  border-top:1px solid var(--border);
-  display:none;
+  position:absolute; bottom:0; left:0; right:0;
+  background:rgba(13,17,23,.92); padding:10px 14px;
+  border-top:1px solid var(--border); display:none;
   backdrop-filter:blur(4px);
 }
 #load-overlay.vis { display:block; }
 .progress-track { background:var(--bg3); border-radius:4px; height:4px; overflow:hidden; }
-.progress-fill  { background:var(--blue); height:100%; width:0%; transition:width .3s; border-radius:4px; }
+.progress-fill  { background:var(--blue); height:100%; width:0%; transition:width .25s; border-radius:4px; }
 .progress-text  { font-size:11px; color:var(--muted); margin-top:5px; font-family:'Courier New',monospace; }
 
 /* toolbar */
 .toolbar {
-  background:var(--bg2);
-  border-top:1px solid var(--border);
-  padding:6px 12px;
-  display:flex;
-  align-items:center;
-  gap:5px;
-  flex-shrink:0;
+  background:var(--bg2); border-top:1px solid var(--border);
+  padding:6px 10px; display:flex; align-items:center; gap:5px; flex-shrink:0; min-height:48px;
 }
-.toolbar .btn { padding:5px 10px; font-size:11px; }
+.toolbar .btn { padding:5px 10px; font-size:11px; min-height:34px; }
 .toolbar .spacer { flex:1; }
-.vm-info-text { font-size:11px; color:var(--muted); font-family:'Courier New',monospace; }
+.vm-info-text { font-size:10px; color:var(--muted); font-family:'Courier New',monospace; }
 
 /* serial console */
 #serial {
-  height:0;
-  overflow:hidden;
-  overflow-y:auto;
-  background:#020c02;
-  font-family:'Courier New', monospace;
-  font-size:12px;
-  color:#00e840;
-  transition:height .2s, padding .2s;
-  flex-shrink:0;
+  height:0; overflow:hidden; overflow-y:auto;
+  background:#020c02; font-family:'Courier New',monospace;
+  font-size:12px; color:#00e840;
+  transition:height .2s, padding .2s; flex-shrink:0;
 }
-#serial.open { height:160px; padding:8px 12px; border-top:1px solid var(--border); }
+#serial.open { height:140px; padding:8px 12px; border-top:1px solid var(--border); }
+
+/* mobile keyboard overlay */
+#kb-overlay {
+  display:none; position:fixed; bottom:0; left:0; right:0;
+  background:var(--bg2); border-top:2px solid var(--border);
+  padding:10px; z-index:300; flex-direction:column; gap:8px;
+}
+#kb-overlay.open { display:flex; }
+#kb-text {
+  background:var(--bg3); border:1px solid var(--border); color:var(--green);
+  padding:10px; border-radius:6px; font-family:'Courier New',monospace; font-size:15px;
+  width:100%; resize:none; height:50px; outline:none;
+  caret-color:var(--green);
+}
+.kb-keys {
+  display:flex; flex-wrap:wrap; gap:5px;
+}
+.kb-key {
+  background:var(--bg3); border:1px solid var(--border); color:var(--text);
+  padding:8px 12px; border-radius:5px; font-size:12px; font-weight:600;
+  cursor:pointer; font-family:inherit; min-width:40px; text-align:center;
+  transition:background .1s;
+}
+.kb-key:active { background:var(--border); }
 
 /* help */
 .help { font-size:10px; color:var(--muted); line-height:1.65; }
 .help strong { color:var(--text); }
 .help a { color:var(--blue); text-decoration:none; }
-.help a:hover { text-decoration:underline; }
+.help code { font-size:9px; background:var(--bg3); padding:1px 4px; border-radius:3px; }
 
-/* scrollbar */
-::-webkit-scrollbar { width:6px; }
+/* mobile menu toggle */
+#menu-btn { display:none; }
+@media (max-width:600px) { #menu-btn { display:flex; } }
+
+::-webkit-scrollbar { width:5px; }
 ::-webkit-scrollbar-track { background:var(--bg2); }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
 </style>
 </head>
 <body>
 
-<!-- ─── Header ──────────────────────────────────────────────── -->
+<!-- ─── Header ───────────────────────────────────────────── -->
 <header>
   <div class="logo">Browser<span>VM</span></div>
   <span class="badge" id="status-badge">Stopped</span>
-  <div class="hdr-right">x86 Emulation · Runs entirely in your browser</div>
+  <button class="btn btn-ghost" id="menu-btn" style="padding:4px 10px;min-height:32px;font-size:18px;" onclick="toggleSidebar()">☰</button>
+  <div class="right">x86 in your browser</div>
 </header>
 
 <div class="layout">
 
-  <!-- ─── Sidebar ──────────────────────────────────────────── -->
-  <div class="sidebar">
+  <!-- ─── Sidebar ────────────────────────────────────────── -->
+  <div class="sidebar" id="sidebar">
 
-    <!-- Distros -->
     <div class="sec">
-      <div class="sec-label">Linux Distributions</div>
+      <div class="sec-label">Distributions</div>
       <div id="distro-list"></div>
     </div>
 
-    <!-- Custom URL -->
     <div class="sec">
       <div class="sec-label">Custom Image URL</div>
       <div class="frow">
-        <label>Direct image URL (ISO / IMG / BIN)</label>
+        <label>URL — ISO, IMG, BIN, or bzImage</label>
         <input type="url" id="custom-url" placeholder="https://…/linux.iso" />
       </div>
       <div class="frow">
         <label>Boot method</label>
         <select id="custom-type" onchange="onCustomTypeChange()">
-          <option value="cdrom">CD-ROM — ISO image</option>
-          <option value="hda">Hard Disk — disk image</option>
-          <option value="fda">Floppy Disk — floppy img</option>
-          <option value="bzimage">bzImage — Linux kernel binary</option>
+          <option value="cdrom">CD-ROM (ISO image)</option>
+          <option value="hda">Hard Disk (IMG/BIN)</option>
+          <option value="fda">Floppy (IMG)</option>
+          <option value="bzimage">bzImage (Linux kernel)</option>
         </select>
       </div>
       <div class="frow" id="initrd-row" style="display:none">
-        <label>initrd URL (required for bzImage)</label>
+        <label>initrd URL (needed for bzImage)</label>
         <input type="url" id="custom-initrd" placeholder="https://…/initrd.img" />
       </div>
-      <button class="btn btn-ghost btn-full" onclick="applyCustom()">Apply Custom URL</button>
+      <button class="btn btn-ghost btn-full" onclick="applyCustom()">Use this URL</button>
     </div>
 
-    <!-- Config -->
     <div class="sec">
-      <div class="sec-label">Configuration</div>
+      <div class="sec-label">RAM</div>
       <div class="frow">
-        <label>RAM — <strong id="mem-val">256</strong> MB</label>
+        <label><strong id="mem-val">256</strong> MB</label>
         <input type="range" id="mem" min="64" max="512" step="64" value="256"
           oninput="document.getElementById('mem-val').textContent=this.value">
       </div>
     </div>
 
-    <!-- Controls -->
     <div class="sec">
-      <div class="sec-label">VM Controls</div>
+      <div class="sec-label">Controls</div>
       <div class="btn-row" style="margin-bottom:6px">
         <button class="btn btn-green" id="btn-start" onclick="startVM()">▶ Start</button>
         <button class="btn btn-red"   id="btn-stop"  onclick="stopVM()" disabled>■ Stop</button>
@@ -321,139 +294,331 @@ input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin
       </div>
     </div>
 
-    <!-- Help -->
     <div class="sec" style="flex:1">
-      <div class="sec-label">How to Use</div>
+      <div class="sec-label">Info</div>
       <div class="help">
-        <strong>1.</strong> Pick a distro below, or paste a custom URL<br>
-        <strong>2.</strong> Click <strong>Start</strong> — images download from the web<br>
-        <strong>3.</strong> Booting takes <strong>30 s – 3 min</strong> depending on distro<br>
-        <strong>4.</strong> Click the black screen to capture keyboard<br>
-        <strong>5.</strong> Press <strong>Escape</strong> to release keyboard focus<br><br>
-        Custom images must be served with<br>
-        <code>Access-Control-Allow-Origin: *</code> headers.<br><br>
-        <strong>Tip:</strong> Open <em>Terminal Log</em> in the toolbar to<br>
-        see serial output while booting.<br><br>
-        Powered by <a href="https://github.com/copy/v86" target="_blank">v86</a> — a full x86 emulator in JS/WASM.
+        <strong>How images load:</strong><br>
+        The full image is downloaded then handed to the emulator as an in-memory buffer — no CORS issues inside the VM.<br>
+        Fallback proxy: <code>allorigins.win</code><br><br>
+        <strong>Custom URLs</strong> need<br>
+        <code>Access-Control-Allow-Origin: *</code><br>
+        or prefix with:<br>
+        <code>https://api.allorigins.win/raw?url=</code><br><br>
+        <strong>Touch:</strong> tap screen for mouse, use <em>⌨ Keys</em> toolbar button for keyboard.<br><br>
+        Powered by <a href="https://github.com/copy/v86" target="_blank">v86</a>.
       </div>
     </div>
 
   </div><!-- /sidebar -->
 
-  <!-- ─── VM Area ──────────────────────────────────────────── -->
+  <!-- ─── VM main ─────────────────────────────────────────── -->
   <div class="vm-wrap">
 
     <div id="screen-area">
 
-      <!-- Placeholder -->
       <div id="placeholder">
-        <span class="bigicon">🖥</span>
+        <span class="bigicon">🖥️</span>
         <h2>Linux VM Ready</h2>
-        <p>Select a distribution and click <strong>Start</strong></p>
+        <p>Pick a distro and tap <strong>Start</strong></p>
       </div>
 
-      <!-- v86 renders into this div — DO NOT add extra children -->
+      <!-- v86 needs exactly: children[0]=div (text), children[1]=canvas (graphics) -->
       <div id="screen_container">
         <div></div>
         <canvas></canvas>
       </div>
 
-      <!-- Loading / progress overlay -->
       <div id="load-overlay">
         <div class="progress-track">
           <div class="progress-fill" id="prog-fill"></div>
         </div>
-        <div class="progress-text" id="prog-text">Initializing emulator…</div>
+        <div class="progress-text" id="prog-text">Initializing…</div>
       </div>
 
-    </div><!-- /screen-area -->
+    </div>
 
     <!-- Toolbar -->
     <div class="toolbar">
-      <button class="btn btn-ghost" onclick="toggleConsole()">▾ Terminal Log</button>
-      <button class="btn btn-ghost" onclick="screenshot()">📷 Screenshot</button>
-      <button class="btn btn-ghost" onclick="toggleFS()">⛶ Fullscreen</button>
+      <button class="btn btn-ghost" onclick="toggleConsole()">▾ Log</button>
+      <button class="btn btn-ghost" onclick="toggleKbOverlay()">⌨ Keys</button>
+      <button class="btn btn-ghost" onclick="screenshot()">📷</button>
+      <button class="btn btn-ghost" onclick="toggleFS()">⛶</button>
       <div class="spacer"></div>
       <span class="vm-info-text" id="vm-info"></span>
     </div>
 
-    <!-- Serial console output -->
     <div id="serial"></div>
 
-  </div><!-- /vm-wrap -->
-
+  </div>
 </div><!-- /layout -->
+
+<!-- Mobile keyboard overlay -->
+<div id="kb-overlay">
+  <textarea id="kb-text" placeholder="Type here — sent to VM in real time"
+    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+  <div class="kb-keys" id="kb-keys"></div>
+</div>
 
 <script>
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+// v86 WASM + BIOS from jsDelivr — has Access-Control-Allow-Origin: *
+const V86_CDN = 'https://cdn.jsdelivr.net/gh/copy/v86@master';
+
+// Disk images from copy.sh — fetched by US (not v86), with proxy fallback
+const IMG_SRC = 'https://copy.sh/v86/images/';
+
+// Proxy chain — tried in order until one succeeds
+const PROXIES = [
+  u => u,                                                                // 1. direct
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),  // 2. allorigins (free, any origin)
+];
+
+function img(f) { return IMG_SRC + f; }
+
+// ═══════════════════════════════════════════════════════════════
 //  DISTRO CATALOG
-//  Images are served from copy.sh (official v86 demo host) with
-//  CORS headers and support for HTTP Range requests (async mode).
 // ═══════════════════════════════════════════════════════════════
 const DISTROS = [
   {
-    id: 'buildroot',
-    name: 'Buildroot Linux',
-    desc: 'Tiny embedded Linux — boots in ~10 s',
-    tag: 'bzImage', tagClass: 'tag-bz',
-    icon: '🐧',
-    boot: 'bzimage',
-    bzimageUrl: 'https://copy.sh/v86/images/buildroot-bzimage.bin',
-    initrdUrl:  'https://copy.sh/v86/images/buildroot-initrd.img',
-    mem: 128,
+    id:'buildroot', name:'Buildroot Linux', icon:'🐧',
+    desc:'Tiny embedded Linux — boots ~10 s',
+    tag:'bzImage', tagClass:'tag-bz',
+    boot:'bzimage',
+    bzimageUrl: img('buildroot-bzimage.bin'),
+    initrdUrl:  img('buildroot-initrd.img'),
+    mem:128,
   },
   {
-    id: 'linux3',
-    name: 'Linux Demo (v3)',
-    desc: 'Small graphical Linux demo',
-    tag: 'ISO', tagClass: 'tag-iso',
-    icon: '🐧',
-    boot: 'cdrom',
-    url: 'https://copy.sh/v86/images/linux3.iso',
-    mem: 128,
+    id:'linux3', name:'Linux Demo (v3)', icon:'🐧',
+    desc:'Small graphical Linux demo',
+    tag:'ISO', tagClass:'tag-iso',
+    boot:'cdrom', url: img('linux3.iso'),
+    mem:128,
   },
   {
-    id: 'alpine',
-    name: 'Alpine Linux 3.12',
-    desc: 'Minimal, security-oriented Linux',
-    tag: 'ISO', tagClass: 'tag-iso',
-    icon: '⛰',
-    boot: 'cdrom',
-    url: 'https://copy.sh/v86/images/alpine-v3.12.0-x86-uefi.iso',
-    mem: 256,
+    id:'alpine', name:'Alpine Linux 3.12', icon:'⛰️',
+    desc:'Minimal security-oriented Linux',
+    tag:'ISO', tagClass:'tag-iso',
+    boot:'cdrom', url: img('alpine-v3.12.0-x86-uefi.iso'),
+    mem:256,
   },
   {
-    id: 'kolibri',
-    name: 'KolibriOS',
-    desc: 'Tiny graphical OS written in assembly',
-    tag: 'IMG', tagClass: 'tag-img',
-    icon: '🦋',
-    boot: 'fda',
-    url: 'https://copy.sh/v86/images/kolibrios.img',
-    mem: 64,
+    id:'kolibri', name:'KolibriOS', icon:'🦋',
+    desc:'Tiny graphical OS written in assembly',
+    tag:'IMG', tagClass:'tag-img',
+    boot:'fda', url: img('kolibrios.img'),
+    mem:64,
   },
   {
-    id: 'freedos',
-    name: 'FreeDOS',
-    desc: 'Free DOS — great for quick testing',
-    tag: 'IMG', tagClass: 'tag-img',
-    icon: '💾',
-    boot: 'fda',
-    url: 'https://copy.sh/v86/images/freedos722.img',
-    mem: 64,
+    id:'freedos', name:'FreeDOS', icon:'💾',
+    desc:'Free DOS — great for quick testing',
+    tag:'IMG', tagClass:'tag-img',
+    boot:'fda', url: img('freedos722.img'),
+    mem:64,
   },
 ];
 
 // ═══════════════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════════════
-let emulator     = null;
-let current      = DISTROS[0];
-let running      = false;
-let serialBuf    = '';
-let consoleOpen  = false;
+let emulator = null, current = DISTROS[0], running = false;
+let serialBuf = '', consoleOpen = false, kbOpen = false;
+
+// ═══════════════════════════════════════════════════════════════
+//  FETCH BUFFER — downloads image to ArrayBuffer with proxy chain
+//  Passing buffers to v86 means v86 never makes network requests
+//  for disk content → zero CORS issues inside the emulator.
+// ═══════════════════════════════════════════════════════════════
+async function fetchBuffer(rawUrl, onProgress) {
+  let lastErr;
+  for (let i = 0; i < PROXIES.length; i++) {
+    const url = PROXIES[i](rawUrl);
+    try {
+      if (i > 0) showLoad(`Retrying via proxy ${i}…`);
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      // Reject JSON/HTML error pages that proxies sometimes return
+      const ct = (resp.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('text/html')) throw new Error('Got HTML (blocked?)');
+
+      const total  = parseInt(resp.headers.get('content-length') || '0');
+      const reader = resp.body.getReader();
+      const chunks = [];
+      let loaded = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        // Detect JSON error in first chunk (corsproxy.io style)
+        if (chunks.length === 0 && value[0] === 123 /* '{' */) {
+          const txt = new TextDecoder().decode(value);
+          if (txt.includes('"error"')) throw new Error(txt.slice(0, 120));
+        }
+        chunks.push(value);
+        loaded += value.length;
+        if (onProgress) onProgress(loaded, total);
+      }
+
+      const buf = new Uint8Array(loaded);
+      let off = 0;
+      for (const c of chunks) { buf.set(c, off); off += c.length; }
+      return buf.buffer;
+
+    } catch (e) {
+      lastErr = e;
+      console.warn('[VM] attempt', i + 1, 'failed:', e.message);
+    }
+  }
+  throw new Error('All download attempts failed — ' + lastErr?.message);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TOUCH SUPPORT
+// ═══════════════════════════════════════════════════════════════
+function installTouch() {
+  const wrap = document.getElementById('screen_container');
+
+  // Helper: synthesise a MouseEvent on the canvas
+  function mouse(type, t, buttons) {
+    const canvas = wrap.querySelector('canvas');
+    if (!canvas) return;
+    canvas.dispatchEvent(new MouseEvent(type, {
+      bubbles: true, cancelable: true, view: window,
+      clientX: t.clientX, clientY: t.clientY,
+      button: 0, buttons,
+    }));
+  }
+
+  // Single-finger → left mouse button
+  wrap.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    mouse('mousemove', t, 0);
+    mouse('mousedown', t, 1);
+  }, { passive: false });
+
+  wrap.addEventListener('touchmove', e => {
+    e.preventDefault();
+    mouse('mousemove', e.changedTouches[0], 1);
+  }, { passive: false });
+
+  wrap.addEventListener('touchend', e => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    mouse('mouseup', t, 0);
+    mouse('click',   t, 0);
+  }, { passive: false });
+
+  // Two-finger tap → right click
+  let twoFingerPending = false;
+  wrap.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) { e.preventDefault(); twoFingerPending = true; }
+  }, { passive: false });
+  wrap.addEventListener('touchend', e => {
+    if (twoFingerPending && e.touches.length === 0) {
+      twoFingerPending = false;
+      const t = e.changedTouches[0];
+      const canvas = wrap.querySelector('canvas');
+      if (canvas) canvas.dispatchEvent(new MouseEvent('contextmenu', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: t.clientX, clientY: t.clientY, button: 2, buttons: 2,
+      }));
+    }
+  }, { passive: false });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MOBILE KEYBOARD OVERLAY
+// ═══════════════════════════════════════════════════════════════
+function setupKeyboard() {
+  // Special keys bar
+  const SPECIALS = [
+    { label:'Esc',  key:'Escape',    code:'Escape',    keyCode:27 },
+    { label:'Tab',  key:'Tab',       code:'Tab',       keyCode:9  },
+    { label:'↑',    key:'ArrowUp',   code:'ArrowUp',   keyCode:38 },
+    { label:'↓',    key:'ArrowDown', code:'ArrowDown', keyCode:40 },
+    { label:'←',    key:'ArrowLeft', code:'ArrowLeft', keyCode:37 },
+    { label:'→',    key:'ArrowRight',code:'ArrowRight',keyCode:39 },
+    { label:'⌫',    key:'Backspace', code:'Backspace', keyCode:8  },
+    { label:'Enter',key:'Enter',     code:'Enter',     keyCode:13 },
+    { label:'Ctrl+C', ctrl:true, key:'c', code:'KeyC', keyCode:67 },
+    { label:'Ctrl+D', ctrl:true, key:'d', code:'KeyD', keyCode:68 },
+    { label:'Ctrl+Z', ctrl:true, key:'z', code:'KeyZ', keyCode:90 },
+    { label:'F1',   key:'F1',  code:'F1',  keyCode:112 },
+    { label:'F2',   key:'F2',  code:'F2',  keyCode:113 },
+    { label:'F5',   key:'F5',  code:'F5',  keyCode:116 },
+    { label:'F10',  key:'F10', code:'F10', keyCode:121 },
+    { label:'F12',  key:'F12', code:'F12', keyCode:123 },
+  ];
+
+  const bar = document.getElementById('kb-keys');
+  SPECIALS.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'kb-key';
+    btn.textContent = s.label;
+    btn.addEventListener('click', () => sendKey(s));
+    bar.appendChild(btn);
+  });
+
+  // Text textarea → send char by char
+  const ta = document.getElementById('kb-text');
+  let prev = '';
+  ta.addEventListener('input', () => {
+    const cur = ta.value;
+    if (cur.length > prev.length) {
+      const added = cur.slice(prev.length);
+      for (const ch of added) sendChar(ch);
+    }
+    prev = cur;
+    // Auto-clear when long
+    if (ta.value.length > 80) { ta.value = ''; prev = ''; }
+  });
+
+  // Also forward real keydown from textarea (arrows, enter, etc.)
+  ta.addEventListener('keydown', e => {
+    const specials = ['Backspace','Enter','Tab','Escape',
+                      'ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
+    if (specials.includes(e.key)) {
+      e.preventDefault();
+      sendKey({ key: e.key, code: e.code, keyCode: e.keyCode });
+    }
+  });
+}
+
+function getVMCanvas() {
+  return document.querySelector('#screen_container canvas');
+}
+
+function sendKey({ key, code, keyCode, ctrl = false }) {
+  const canvas = getVMCanvas();
+  if (!canvas) return;
+  const opts = { key, code, keyCode, ctrlKey: ctrl, bubbles: true, cancelable: true };
+  canvas.dispatchEvent(new KeyboardEvent('keydown', opts));
+  canvas.dispatchEvent(new KeyboardEvent('keyup',   opts));
+}
+
+function sendChar(ch) {
+  const canvas = getVMCanvas();
+  if (!canvas) return;
+  const opts = { key: ch, charCode: ch.charCodeAt(0), keyCode: ch.charCodeAt(0), bubbles: true };
+  canvas.dispatchEvent(new KeyboardEvent('keydown',  opts));
+  canvas.dispatchEvent(new KeyboardEvent('keypress', opts));
+  canvas.dispatchEvent(new KeyboardEvent('keyup',    opts));
+}
+
+function toggleKbOverlay() {
+  kbOpen = !kbOpen;
+  document.getElementById('kb-overlay').classList.toggle('open', kbOpen);
+  if (kbOpen) {
+    document.getElementById('kb-text').focus();
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  SIDEBAR — distro list
@@ -468,7 +633,7 @@ function buildDistroList() {
       `<div class="dcard-name">${d.icon} ${d.name}</div>` +
       `<div class="dcard-desc">${d.desc}</div>` +
       `<span class="dcard-tag ${d.tagClass}">${d.tag}</span>`;
-    el.addEventListener('click', () => pickDistro(d));
+    el.addEventListener('click', () => { pickDistro(d); closeSidebar(); });
     container.appendChild(el);
   });
 }
@@ -485,103 +650,123 @@ function pickDistro(d) {
 }
 
 function onCustomTypeChange() {
-  const t = document.getElementById('custom-type').value;
-  document.getElementById('initrd-row').style.display = t === 'bzimage' ? 'block' : 'none';
+  document.getElementById('initrd-row').style.display =
+    document.getElementById('custom-type').value === 'bzimage' ? 'block' : 'none';
 }
 
 function applyCustom() {
-  const url  = document.getElementById('custom-url').value.trim();
-  const boot = document.getElementById('custom-type').value;
+  const url   = document.getElementById('custom-url').value.trim();
+  const boot  = document.getElementById('custom-type').value;
   const initrd = document.getElementById('custom-initrd').value.trim();
   if (!url) { alert('Please enter a URL.'); return; }
-
-  const filename = (url.split('/').pop().split('?')[0]) || 'image';
+  const name = (url.split('/').pop().split('?')[0]) || 'image';
   current = {
-    id: 'custom', name: 'Custom: ' + filename,
-    desc: 'User-provided image', tag: boot.toUpperCase(), tagClass:'tag-img', icon:'⚙',
+    id:'custom', name:'Custom: '+name, icon:'⚙️',
+    desc:'User image', tag:boot.toUpperCase(), tagClass:'tag-img',
     boot, url,
     bzimageUrl: boot === 'bzimage' ? url : undefined,
-    initrdUrl:  initrd || undefined,
+    initrdUrl: initrd || undefined,
     mem: +document.getElementById('mem').value,
   };
   document.querySelectorAll('.dcard').forEach(e => e.classList.remove('sel'));
-  badge('', '📎 Custom set');
-  alert(`Custom image ready:\n${filename}\n\nClick ▶ Start to boot.`);
+  badge('', '✓ Custom set');
+}
+
+// sidebar mobile toggle
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  VM — start
+//  VM — START
 // ═══════════════════════════════════════════════════════════════
-function startVM() {
+async function startVM() {
   if (running) return;
+  const d = current, mem = +document.getElementById('mem').value;
 
-  const d   = current;
-  const mem = +document.getElementById('mem').value;
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('screen_container').classList.add('active');
+  setProgress(0);
+  badge('loading', 'Downloading…');
+  closeSidebar();
 
-  // Build v86 config
+  // v86 config — WASM & BIOS via jsDelivr (has CORS)
   const cfg = {
-    wasm_path:       'https://copy.sh/v86/build/v86.wasm',
+    wasm_path:       V86_CDN + '/build/v86.wasm',
     memory_size:      mem * 1024 * 1024,
-    vga_memory_size:  8  * 1024 * 1024,
+    vga_memory_size:  8   * 1024 * 1024,
     screen_container: document.getElementById('screen_container'),
-    bios:    { url: 'https://copy.sh/v86/bios/seabios.bin'  },
-    vga_bios:{ url: 'https://copy.sh/v86/bios/vgabios.bin'  },
+    bios:    { url: V86_CDN + '/bios/seabios.bin' },
+    vga_bios:{ url: V86_CDN + '/bios/vgabios.bin' },
     autostart: true,
     network_relay_url: 'wss://relay.widgetry.org/',
   };
 
-  switch (d.boot) {
-    case 'cdrom':   cfg.cdrom  = { url: d.url, async: true };  break;
-    case 'hda':     cfg.hda    = { url: d.url, async: true };  break;
-    case 'fda':     cfg.fda    = { url: d.url, async: true };  break;
-    case 'bzimage':
-      cfg.bzimage = { url: d.bzimageUrl };
-      if (d.initrdUrl) cfg.initrd = { url: d.initrdUrl };
-      break;
+  // ── Download disk images as buffers ────────────────────────
+  try {
+    if (d.boot === 'bzimage') {
+
+      showLoad('Downloading kernel…');
+      const bzBuf = await fetchBuffer(d.bzimageUrl, (ld, tot) => {
+        setProgress(tot ? Math.round(ld/tot*50) : 10);
+        showLoad(`Kernel: ${fmt(ld)}${tot ? ' / '+fmt(tot) : ''}`);
+      });
+      cfg.bzimage = { buffer: bzBuf };
+
+      if (d.initrdUrl) {
+        const rdBuf = await fetchBuffer(d.initrdUrl, (ld, tot) => {
+          setProgress(50 + (tot ? Math.round(ld/tot*50) : 10));
+          showLoad(`initrd: ${fmt(ld)}${tot ? ' / '+fmt(tot) : ''}`);
+        });
+        cfg.initrd = { buffer: rdBuf };
+      }
+
+    } else {
+      const label = d.boot === 'cdrom' ? 'ISO' : 'disk image';
+      const buf = await fetchBuffer(d.url, (ld, tot) => {
+        setProgress(tot ? Math.round(ld/tot*100) : 5);
+        showLoad(`Downloading ${label}: ${fmt(ld)}${tot ? ' / '+fmt(tot) : ''}`);
+      });
+      if      (d.boot === 'cdrom') cfg.cdrom = { buffer: buf };
+      else if (d.boot === 'hda')   cfg.hda   = { buffer: buf };
+      else if (d.boot === 'fda')   cfg.fda   = { buffer: buf };
+    }
+
+  } catch (err) {
+    hideLoad(); setProgress(0); badge('error', 'Error');
+    document.getElementById('placeholder').style.display = 'block';
+    document.getElementById('screen_container').classList.remove('active');
+    alert('⚠ Download failed:\n\n' + err.message +
+      '\n\nFor custom URLs add this prefix:\nhttps://api.allorigins.win/raw?url=');
+    return;
   }
 
-  // Show screen, hide placeholder
-  document.getElementById('placeholder').style.display    = 'none';
-  document.getElementById('screen_container').classList.add('active');
-  showLoad('Fetching BIOS files…');
-  badge('loading', 'Loading…');
+  showLoad('Initializing emulator…');
+  setProgress(100);
 
   try {
     emulator = new V86(cfg);
   } catch (err) {
-    hideLoad();
-    badge('error', 'Error');
+    hideLoad(); badge('error', 'Error');
     document.getElementById('placeholder').style.display = 'block';
     document.getElementById('screen_container').classList.remove('active');
-    alert('Failed to create VM:\n' + err.message +
-          '\n\nMake sure libv86.js loaded (internet required).');
+    alert('Failed to create VM:\n' + err.message);
     return;
   }
 
-  // ── Events ──────────────────────────────────────────────────
   emulator.add_listener('emulator-ready', () => {
-    setProgress(100);
-    showLoad('Booting — please wait…');
-    running = true;
-    syncControls();
+    running = true; syncControls();
     badge('running', 'Running');
-    document.getElementById('vm-info').textContent =
-      d.name + ' · ' + mem + ' MB RAM';
+    showLoad('Booting OS…');
+    document.getElementById('vm-info').textContent = d.name + ' · ' + mem + ' MB';
     setTimeout(hideLoad, 4000);
   });
 
   emulator.add_listener('emulator-stopped', () => {
-    running = false;
-    syncControls();
-    badge('', 'Stopped');
-  });
-
-  emulator.add_listener('download-progress', ev => {
-    if (!ev || !ev.total) return;
-    const pct  = Math.round((ev.loaded / ev.total) * 100);
-    const name = String(ev.file_name || 'file').split('/').pop();
-    setProgress(pct);
-    showLoad(`⬇ ${name} — ${pct}% (${fmtBytes(ev.loaded)} / ${fmtBytes(ev.total)})`);
+    running = false; syncControls(); badge('', 'Stopped');
   });
 
   emulator.add_listener('serial0-output-byte', byte => {
@@ -590,39 +775,29 @@ function startVM() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  VM — controls
+//  VM — CONTROLS
 // ═══════════════════════════════════════════════════════════════
 function stopVM() {
   if (!emulator) return;
-  emulator.stop();
-  emulator = null;
-  running  = false;
-
+  emulator.stop(); emulator = null; running = false;
   document.getElementById('placeholder').style.display = 'block';
   document.getElementById('screen_container').classList.remove('active');
   document.getElementById('vm-info').textContent = '';
   document.getElementById('serial').textContent = '';
   serialBuf = '';
-  hideLoad();
-  syncControls();
-  badge('', 'Stopped');
+  hideLoad(); syncControls(); badge('', 'Stopped');
 }
 
-function restartVM() {
-  if (!emulator) return;
-  try { emulator.restart(); } catch (_) {}
-}
+function restartVM() { if (emulator) try { emulator.restart(); } catch(_){} }
 
 function sendCAD() {
   if (!emulator || !running) return;
-  // Ctrl press, Alt press, Del press/release, Alt release, Ctrl release
   emulator.keyboard_send_scancodes([0x1D, 0x38, 0x53, 0xD3, 0xB8, 0x9D]);
 }
 
 function screenshot() {
-  if (!emulator) return;
-  try { emulator.screen_make_screenshot(); }
-  catch (_) { alert('Screenshot unavailable (VM must be running).'); }
+  if (!emulator) { alert('VM must be running.'); return; }
+  try { emulator.screen_make_screenshot(); } catch(_) {}
 }
 
 function toggleFS() {
@@ -632,69 +807,58 @@ function toggleFS() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  Serial console
+//  SERIAL CONSOLE
 // ═══════════════════════════════════════════════════════════════
 function pushSerial(ch) {
   serialBuf += ch;
-  // Batch DOM writes for performance
   if (ch === '\n' || serialBuf.length % 64 === 0) {
     const el = document.getElementById('serial');
-    el.textContent += serialBuf;
-    serialBuf = '';
+    el.textContent += serialBuf; serialBuf = '';
     el.scrollTop = el.scrollHeight;
   }
 }
-
 function toggleConsole() {
   consoleOpen = !consoleOpen;
   document.getElementById('serial').classList.toggle('open', consoleOpen);
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  UI helpers
+//  UI HELPERS
 // ═══════════════════════════════════════════════════════════════
 function badge(cls, text) {
   const el = document.getElementById('status-badge');
   el.className = 'badge' + (cls ? ' ' + cls : '');
   el.textContent = text;
 }
-
 function showLoad(msg) {
   document.getElementById('load-overlay').classList.add('vis');
   document.getElementById('prog-text').textContent = msg;
 }
 function hideLoad() { document.getElementById('load-overlay').classList.remove('vis'); }
 function setProgress(pct) { document.getElementById('prog-fill').style.width = pct + '%'; }
-
 function syncControls() {
   document.getElementById('btn-start').disabled = running;
   document.getElementById('btn-stop').disabled  = !running;
-  document.querySelectorAll('.dcard').forEach(el => {
-    el.classList.toggle('disabled', running);
-  });
+  document.querySelectorAll('.dcard').forEach(el => el.classList.toggle('disabled', running));
 }
-
-function fmtBytes(n) {
-  if (n < 1024)       return n + ' B';
-  if (n < 1048576)    return (n / 1024).toFixed(1) + ' KB';
-  return (n / 1048576).toFixed(1) + ' MB';
+function fmt(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+  return (n/1048576).toFixed(1) + ' MB';
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  Init
+//  BOOT
 // ═══════════════════════════════════════════════════════════════
 buildDistroList();
 syncControls();
+installTouch();
+setupKeyboard();
 
-// Warn if libv86 didn't load (e.g. offline)
 window.addEventListener('load', () => {
   if (typeof V86 === 'undefined') {
     badge('error', 'v86 not loaded');
-    alert(
-      'ERROR: libv86.js could not be loaded from copy.sh.\n\n' +
-      'BrowserVM requires an internet connection to download the emulator.\n' +
-      'Check your network and reload the page.'
-    );
+    alert('libv86.js failed to load — check your internet connection.');
   }
 });
 </script>
