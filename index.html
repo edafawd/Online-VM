@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>BrowserVM — Linux in Your Browser</title>
-<script src="https://copy.sh/v86/build/libv86.js"></script>
+<title>BrowserVM — Old PCs in Your Browser</title>
+<!-- The emulator (v86). libv86.js and v86.wasm MUST be the same version, or nothing starts. -->
+<script src="https://cdn.jsdelivr.net/npm/v86@0.5.473/build/libv86.js"></script>
 <style>
 :root {
   --bg:     #0d1117;
@@ -238,7 +239,7 @@ input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin
   <div class="logo">Browser<span>VM</span></div>
   <span class="badge" id="status-badge">Stopped</span>
   <button class="btn btn-ghost" id="menu-btn" style="padding:4px 10px;min-height:32px;font-size:18px;" onclick="toggleSidebar()">☰</button>
-  <div class="right">x86 in your browser</div>
+  <div class="right">32-bit PC in your browser</div>
 </header>
 
 <div class="layout">
@@ -249,6 +250,56 @@ input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin
     <div class="sec">
       <div class="sec-label">Distributions</div>
       <div id="distro-list"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Your own OS file (Windows 95, 98, XP…)</div>
+      <div class="frow">
+        <label>ISO or IMG file on this device (never uploaded)</label>
+        <input type="file" id="own-file" accept=".iso,.img,.ima,.bin,.vhd,.raw,.dsk" onchange="applyOwnFile()" style="font-size:11px;width:100%" />
+      </div>
+      <div class="frow">
+        <label>It is a…</label>
+        <select id="own-type" onchange="applyOwnFile()">
+          <option value="hda">Hard disk image (OS already installed)</option>
+          <option value="cdrom">CD (ISO): install or live CD</option>
+          <option value="fda">Floppy (boot disk)</option>
+        </select>
+      </div>
+      <div class="frow">
+        <label>Preset</label>
+        <select id="own-preset" onchange="applyPreset()">
+          <option value="">Choose…</option>
+          <option value="64">Windows 95 (64 MB RAM)</option>
+          <option value="128">Windows 98 / ME (128 MB RAM)</option>
+          <option value="256">Windows 2000 (256 MB RAM)</option>
+          <option value="512">Windows XP 32-bit (512 MB RAM, slow)</option>
+          <option value="32">DOS / Windows 3.1 (32 MB RAM)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Hard disk &amp; boot</div>
+      <div class="frow">
+        <label>Add an empty hard disk (to install an OS from a CD)</label>
+        <select id="blank-hdd">
+          <option value="0">No empty disk</option>
+          <option value="256">256 MB</option>
+          <option value="512">512 MB (Windows 95)</option>
+          <option value="1024">1 GB (Windows 98)</option>
+          <option value="2048">2 GB (Windows 2000 / XP)</option>
+        </select>
+      </div>
+      <div class="frow">
+        <label>Boot first from</label>
+        <select id="boot-order">
+          <option value="auto">Automatic</option>
+          <option value="cd">CD</option>
+          <option value="hdd">Hard disk</option>
+          <option value="fda">Floppy</option>
+        </select>
+      </div>
     </div>
 
     <div class="sec">
@@ -277,9 +328,10 @@ input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin
       <div class="sec-label">RAM</div>
       <div class="frow">
         <label><strong id="mem-val">256</strong> MB</label>
-        <input type="range" id="mem" min="64" max="512" step="64" value="256"
+        <input type="range" id="mem" min="32" max="1024" step="32" value="256"
           oninput="document.getElementById('mem-val').textContent=this.value">
       </div>
+      <div class="help">Windows 95 crashes with more than 480 MB.</div>
     </div>
 
     <div class="sec">
@@ -292,11 +344,20 @@ input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin
         <button class="btn btn-ghost" onclick="restartVM()">↺ Reboot</button>
         <button class="btn btn-ghost" onclick="sendCAD()">Ctrl+Alt+Del</button>
       </div>
+      <div class="btn-row" style="margin-top:6px">
+        <button class="btn btn-ghost" onclick="saveState()">💾 Save</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('state-file').click()">📂 Load save</button>
+      </div>
+      <input type="file" id="state-file" accept=".bin" hidden onchange="loadState(this)" />
+      <div class="help" style="margin-top:6px">Save downloads the whole VM (screen, memory and disk changes) as a file. To go back: start the <strong>same</strong> OS with the same settings, then Load save.</div>
     </div>
 
     <div class="sec" style="flex:1">
       <div class="sec-label">Info</div>
       <div class="help">
+        <strong>What runs:</strong> 32-bit PC systems: Windows 95, 98, ME, 2000, XP (32-bit), DOS, Windows 3.1, 32-bit Linux, BSD.<br>
+        <strong>What can't:</strong> 64-bit systems (Windows 7/10/11 64-bit, 64-bit Linux). The emulator is a 32-bit PC, and no free browser emulator runs 64-bit at a usable speed.<br>
+        <strong>Windows:</strong> it's not free, so it isn't included. Use your own copy as a file above. A hard disk image with Windows already installed is easiest. Windows 95 CDs usually need a boot floppy too.<br><br>
         <strong>How images load:</strong><br>
         The full image is downloaded then handed to the emulator as an in-memory buffer — no CORS issues inside the VM.<br>
         Fallback proxy: <code>allorigins.win</code><br><br>
@@ -318,8 +379,8 @@ input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin
 
       <div id="placeholder">
         <span class="bigicon">🖥️</span>
-        <h2>Linux VM Ready</h2>
-        <p>Pick a distro and tap <strong>Start</strong></p>
+        <h2>VM Ready</h2>
+        <p>Pick an OS (or your own file) and tap <strong>Start</strong></p>
       </div>
 
       <!-- v86 needs exactly: children[0]=div (text), children[1]=canvas (graphics) -->
@@ -366,11 +427,14 @@ input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin
 //  CONSTANTS
 // ═══════════════════════════════════════════════════════════════
 
-// v86 WASM + BIOS from jsDelivr — has Access-Control-Allow-Origin: *
-const V86_CDN = 'https://cdn.jsdelivr.net/gh/copy/v86@master';
+// v86.wasm from the SAME version as libv86.js (top of the page). BIOS files are in this repo's build/ folder.
+const V86_WASM = 'https://cdn.jsdelivr.net/npm/v86@0.5.473/build/v86.wasm';
+const BIOS = 'build/seabios.bin', VGA_BIOS = 'build/vgabios.bin';
 
-// Disk images from copy.sh — fetched by US (not v86), with proxy fallback
-const IMG_SRC = 'https://copy.sh/v86/images/';
+// Free, open-source OS images, kept in this repo's images/ folder (copied from i.copy.sh, which
+// blocks downloads from other websites). Same website = no CORS problems and no proxy needed.
+const IMG_SRC = 'images/';
+const MB = 1024 * 1024;
 
 // Proxy chain — tried in order until one succeeds
 const PROXIES = [
@@ -384,43 +448,20 @@ function img(f) { return IMG_SRC + f; }
 //  DISTRO CATALOG
 // ═══════════════════════════════════════════════════════════════
 const DISTROS = [
-  {
-    id:'buildroot', name:'Buildroot Linux', icon:'🐧',
-    desc:'Tiny embedded Linux — boots ~10 s',
-    tag:'bzImage', tagClass:'tag-bz',
-    boot:'bzimage',
-    bzimageUrl: img('buildroot-bzimage.bin'),
-    initrdUrl:  img('buildroot-initrd.img'),
-    mem:128,
-  },
-  {
-    id:'linux3', name:'Linux Demo (v3)', icon:'🐧',
-    desc:'Small graphical Linux demo',
-    tag:'ISO', tagClass:'tag-iso',
-    boot:'cdrom', url: img('linux3.iso'),
-    mem:128,
-  },
-  {
-    id:'alpine', name:'Alpine Linux 3.12', icon:'⛰️',
-    desc:'Minimal security-oriented Linux',
-    tag:'ISO', tagClass:'tag-iso',
-    boot:'cdrom', url: img('alpine-v3.12.0-x86-uefi.iso'),
-    mem:256,
-  },
-  {
-    id:'kolibri', name:'KolibriOS', icon:'🦋',
-    desc:'Tiny graphical OS written in assembly',
-    tag:'IMG', tagClass:'tag-img',
-    boot:'fda', url: img('kolibrios.img'),
-    mem:64,
-  },
-  {
-    id:'freedos', name:'FreeDOS', icon:'💾',
-    desc:'Free DOS — great for quick testing',
-    tag:'IMG', tagClass:'tag-img',
-    boot:'fda', url: img('freedos722.img'),
-    mem:64,
-  },
+  { id:'buildroot', name:'Buildroot Linux', icon:'🐧', desc:'Tiny Linux, boots in ~10 s',
+    tag:'bzImage', tagClass:'tag-bz', boot:'bzimage', bzimageUrl: img('buildroot-bzimage68.bin'), mem:128 },
+  { id:'dsl', name:'Damn Small Linux', icon:'🖱️', desc:'Linux with a desktop and apps (53 MB)',
+    tag:'ISO', tagClass:'tag-iso', boot:'cdrom', url: img('dsl-4.11.rc2.iso'), mem:256 },
+  { id:'tinycore', name:'Tiny Core Linux 11', icon:'🐧', desc:'Small Linux with a desktop (20 MB)',
+    tag:'ISO', tagClass:'tag-iso', boot:'cdrom', url: img('TinyCore-11.0.iso'), mem:256 },
+  { id:'linux4', name:'Linux Demo (v4)', icon:'🐧', desc:'Small text-mode Linux',
+    tag:'ISO', tagClass:'tag-iso', boot:'cdrom', url: img('linux4.iso'), mem:128 },
+  { id:'kolibri', name:'KolibriOS', icon:'🦋', desc:'Tiny graphical OS written in assembly',
+    tag:'IMG', tagClass:'tag-img', boot:'fda', url: img('kolibri.img'), mem:64 },
+  { id:'freedos', name:'FreeDOS', icon:'💾', desc:'Free DOS, great for old DOS programs',
+    tag:'IMG', tagClass:'tag-img', boot:'fda', url: img('freedos722.img'), mem:64 },
+  { id:'openbsd', name:'OpenBSD (floppy)', icon:'🐡', desc:'OpenBSD installer floppy',
+    tag:'IMG', tagClass:'tag-img', boot:'fda', url: img('openbsd-floppy.img'), mem:128 },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -647,6 +688,37 @@ function pickDistro(d) {
   document.getElementById('mem-val').textContent = d.mem;
   document.getElementById('custom-url').value = '';
   document.getElementById('custom-initrd').value = '';
+  document.getElementById('own-file').value = '';
+}
+
+// Your own file (like a Windows 95 disk image). It's read straight from this device, never uploaded.
+function applyOwnFile() {
+  const file = document.getElementById('own-file').files[0];
+  if (!file || running) return;
+  const boot = document.getElementById('own-type').value;
+  current = {
+    id:'own', name: file.name, icon:'📁', desc:'Your file', tag: boot.toUpperCase(), tagClass:'tag-img',
+    boot:'file', fileBoot: boot, file,
+    mem: +document.getElementById('mem').value,
+  };
+  document.querySelectorAll('.dcard').forEach(e => e.classList.remove('sel'));
+  badge('', '✓ ' + file.name + ' (' + fmt(file.size) + ')');
+}
+
+function applyPreset() {
+  const mb = document.getElementById('own-preset').value;
+  if (!mb) return;
+  document.getElementById('mem').value = mb;
+  document.getElementById('mem-val').textContent = mb;
+}
+
+// SeaBIOS boot order: lowest 4 bits = first device. 1 = floppy, 2 = hard disk, 3 = CD.
+function bootOrder(cfg) {
+  const pick = document.getElementById('boot-order').value;
+  const first = pick === 'cd' ? 3 : pick === 'hdd' ? 2 : pick === 'fda' ? 1
+    : cfg.fda && !cfg.hda && !cfg.cdrom ? 1 : cfg.cdrom ? 3 : cfg.hda ? 2 : 1;
+  const rest = [3, 2, 1].filter(n => n !== first);
+  return first | rest[0] << 4 | rest[1] << 8;
 }
 
 function onCustomTypeChange() {
@@ -695,19 +767,22 @@ async function startVM() {
 
   // v86 config — WASM & BIOS via jsDelivr (has CORS)
   const cfg = {
-    wasm_path:       V86_CDN + '/build/v86.wasm',
-    memory_size:      mem * 1024 * 1024,
-    vga_memory_size:  8   * 1024 * 1024,
+    wasm_path:       V86_WASM,
+    memory_size:      mem * MB,
+    vga_memory_size:  8 * MB,
     screen_container: document.getElementById('screen_container'),
-    bios:    { url: V86_CDN + '/bios/seabios.bin' },
-    vga_bios:{ url: V86_CDN + '/bios/vgabios.bin' },
+    bios:    { url: BIOS },
+    vga_bios:{ url: VGA_BIOS },
     autostart: true,
     network_relay_url: 'wss://relay.widgetry.org/',
   };
 
   // ── Download disk images as buffers ────────────────────────
   try {
-    if (d.boot === 'bzimage') {
+    if (d.boot === 'file') {
+      // Your own file: big files (256 MB+) are read in pieces, so they don't fill the memory
+      cfg[d.fileBoot] = { buffer: d.file };
+    } else if (d.boot === 'bzimage') {
 
       showLoad('Downloading kernel…');
       const bzBuf = await fetchBuffer(d.bzimageUrl, (ld, tot) => {
@@ -744,6 +819,14 @@ async function startVM() {
     return;
   }
 
+  // An empty hard disk to install an OS on (only when there isn't one already)
+  const blank = +document.getElementById('blank-hdd').value;
+  if (blank && !cfg.hda) {
+    try { cfg.hda = { buffer: new ArrayBuffer(blank * MB) }; }
+    catch (_) { alert('Not enough memory for a ' + blank + ' MB empty disk. Try a smaller one.'); }
+  }
+  cfg.boot_order = bootOrder(cfg);
+
   showLoad('Initializing emulator…');
   setProgress(100);
 
@@ -779,7 +862,9 @@ async function startVM() {
 // ═══════════════════════════════════════════════════════════════
 function stopVM() {
   if (!emulator) return;
-  emulator.stop(); emulator = null; running = false;
+  const old = emulator;
+  emulator = null; running = false;
+  old.destroy ? old.destroy().catch(() => {}) : old.stop();   // destroy frees the VM's memory
   document.getElementById('placeholder').style.display = 'block';
   document.getElementById('screen_container').classList.remove('active');
   document.getElementById('vm-info').textContent = '';
@@ -793,6 +878,39 @@ function restartVM() { if (emulator) try { emulator.restart(); } catch(_){} }
 function sendCAD() {
   if (!emulator || !running) return;
   emulator.keyboard_send_scancodes([0x1D, 0x38, 0x53, 0xD3, 0xB8, 0x9D]);
+}
+
+// Save the whole VM to a file, and load it again later
+async function saveState() {
+  if (!emulator || !running) { alert('Start a VM first.'); return; }
+  badge('loading', 'Saving…');
+  try {
+    const buf = await emulator.save_state();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf]));
+    a.download = (current.name || 'vm').replace(/[^\w.-]+/g, '_') + '-save.bin';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    badge('running', 'Saved (' + fmt(buf.byteLength) + ')');
+  } catch (e) {
+    badge('running', 'Running');
+    alert('Saving failed: ' + e.message);
+  }
+}
+
+async function loadState(input) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (!emulator || !running) { alert('First start the same OS with the same settings, then load the save.'); return; }
+  badge('loading', 'Loading save…');
+  try {
+    await emulator.restore_state(await file.arrayBuffer());
+    badge('running', 'Running');
+  } catch (e) {
+    badge('running', 'Running');
+    alert('This save doesn\'t fit the running VM. Start the same OS with the same RAM and disk first.\n\n' + e.message);
+  }
 }
 
 function screenshot() {
